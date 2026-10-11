@@ -460,6 +460,7 @@ class UserProfile(models.Model):
     collapse_side_panel = models.BooleanField(default=False, null=False)
     hide_bundles = models.BooleanField(default=False, null=False)
     legacy_search = models.BooleanField(default=False, null=False)
+    onboarding_completed = models.BooleanField(default=False, null=False)
 
     def save(self, *args, **kwargs):
         if self.custom_css:
