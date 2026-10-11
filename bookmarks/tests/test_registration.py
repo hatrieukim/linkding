@@ -8,11 +8,14 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from bookmarks.services import registration
-from bookmarks.tests.helpers import BookmarkFactoryMixin, HtmlTestMixin
+from bookmarks.tests.helpers import (
+    BookmarkFactoryMixin,
+    PasswordToggleTestMixin,
+)
 
 
 @override_settings(LD_ENABLE_REGISTRATION=True)
-class RegistrationTestCase(TestCase, BookmarkFactoryMixin, HtmlTestMixin):
+class RegistrationTestCase(TestCase, BookmarkFactoryMixin, PasswordToggleTestMixin):
     valid_data = {
         "username": "newuser",
         "email": "new@example.com",
@@ -66,6 +69,11 @@ class RegistrationTestCase(TestCase, BookmarkFactoryMixin, HtmlTestMixin):
             soup.find("input", {"name": "password", "type": "password"})
         )
         self.assertIsNotNone(soup.find("input", {"name": "code"}))
+
+    def test_registration_page_has_password_toggle(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertPasswordToggles(response, ["password"])
 
     def test_registration_page_redirects_authenticated_user(self):
         self.client.force_login(self.setup_user())

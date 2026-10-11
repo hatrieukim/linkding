@@ -2,10 +2,12 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from bookmarks.tests.helpers import BookmarkFactoryMixin
+from bookmarks.tests.helpers import BookmarkFactoryMixin, PasswordToggleTestMixin
 
 
-class PasswordChangeViewTestCase(TestCase, BookmarkFactoryMixin):
+class PasswordChangeViewTestCase(
+    TestCase, BookmarkFactoryMixin, PasswordToggleTestMixin
+):
     def setUp(self) -> None:
         self.user = User.objects.create_user(
             "testuser", "test@example.com", "initial_password"
@@ -57,3 +59,10 @@ class PasswordChangeViewTestCase(TestCase, BookmarkFactoryMixin):
 
         self.assertEqual(response.status_code, 422)
         self.assertIn("new_password2", response.context_data["form"].errors)
+
+    def test_should_show_password_toggles(self):
+        response = self.client.get(reverse("change_password"))
+
+        self.assertPasswordToggles(
+            response, ["old_password", "new_password1", "new_password2"]
+        )

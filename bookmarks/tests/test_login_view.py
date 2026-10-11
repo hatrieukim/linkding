@@ -1,7 +1,10 @@
 from django.test import TestCase, override_settings
 from django.urls import include, path
 
-from bookmarks.tests.helpers import BookmarkFactoryMixin, HtmlTestMixin
+from bookmarks.tests.helpers import (
+    BookmarkFactoryMixin,
+    PasswordToggleTestMixin,
+)
 from bookmarks.urls import urlpatterns as base_patterns
 
 # Register OIDC urls for this test, otherwise login template can not render when OIDC is enabled
@@ -9,7 +12,7 @@ urlpatterns = base_patterns + [path("oidc/", include("mozilla_django_oidc.urls")
 
 
 @override_settings(ROOT_URLCONF=__name__)
-class LoginViewTestCase(TestCase, BookmarkFactoryMixin, HtmlTestMixin):
+class LoginViewTestCase(TestCase, BookmarkFactoryMixin, PasswordToggleTestMixin):
     def test_failed_login_should_return_401(self):
         response = self.client.post("/login/", {"username": "test", "password": "test"})
         self.assertEqual(response.status_code, 401)
@@ -81,3 +84,15 @@ class LoginViewTestCase(TestCase, BookmarkFactoryMixin, HtmlTestMixin):
 
         self.assertIsNone(form)
         self.assertIsNotNone(oidc_login_link)
+
+    def test_should_show_password_toggle(self):
+        response = self.client.get("/login/")
+
+        self.assertPasswordToggles(response, ["password"])
+
+    @override_settings(LD_DISABLE_LOGIN_FORM=True)
+    def test_should_not_show_password_toggle_when_login_form_disabled(self):
+        response = self.client.get("/login/")
+        soup = self.make_soup(response.content.decode())
+
+        self.assertIsNone(soup.find("ld-password-toggle"))

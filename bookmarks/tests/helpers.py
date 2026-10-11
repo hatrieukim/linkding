@@ -511,3 +511,22 @@ def disable_logging(f):
 def collapse_whitespace(text: str):
     text = text.replace("\n", "").replace("\r", "")
     return " ".join(text.split())
+
+
+class PasswordToggleTestMixin(HtmlTestMixin):
+    def assertPasswordToggles(self, response, field_names):
+        soup = self.make_soup(response.content.decode())
+        for name in field_names:
+            input_element = soup.find("input", {"name": name})
+            self.assertIsNotNone(input_element, name)
+            self.assertEqual("password", input_element.get("type"))
+
+            toggle = input_element.find_parent("ld-password-toggle")
+            self.assertIsNotNone(toggle, name)
+
+            button = toggle.find("button")
+            self.assertIsNotNone(button, name)
+            self.assertEqual("button", button.get("type"))
+            self.assertEqual("Show password", button.get("aria-label"))
+
+        self.assertEqual(len(field_names), len(soup.select("ld-password-toggle")))

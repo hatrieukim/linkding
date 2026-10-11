@@ -13,3 +13,27 @@
   letter-spacing: 0.4em;
   text-align: center;
 }
+
+.auth-page .password-toggle {
+  display: block;
+  position: relative;
+}
+
+.auth-page .password-toggle .form-input {
+  padding-right: calc(20px + var(--control-padding-y) * 2);
+}
+
+.auth-page .password-toggle .password-toggle-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  padding: 0 var(--control-padding-y);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-page .password-toggle .password-toggle-button svg[hidden] {
+  display: none;
+}
