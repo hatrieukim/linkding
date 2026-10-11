@@ -1,0 +1,150 @@
+# GitLab CI/CD for linkding.
+# Covers the Verify, Secure and Package stages of the DevSecOps lifecycle.
+# Runs on merge requests and on the default branch.
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+include:
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/SAST-IaC.gitlab-ci.yml
+  - template: Jobs/Dependency-Scanning.v2.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
+  - template: Security/DAST.gitlab-ci.yml
+
+variables:
+  # Security templates only run on branch pipelines unless this is set.
+  AST_ENABLE_MR_PIPELINES: "true"
+  APP_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+stages:
+  - lint
+  - test
+  - build
+  - scan
+  - dast
+
+default:
+  interruptible: true
+
+# ---------------------------------------------------------------- Verify
+
+.python:
+  image: python:3.13-slim
+  variables:
+    UV_CACHE_DIR: $CI_PROJECT_DIR/.uv-cache
+    UV_LINK_MODE: copy
+  cache:
+    key:
+      files:
+        - uv.lock
+    paths:
+      - .uv-cache
+  before_script:
+    - pip install --quiet --root-user-action=ignore uv==0.8.13
+    # uwsgi is only needed to serve the app and has no prebuilt wheel
+    - uv sync --frozen --no-install-package uwsgi
+
+lint:
+  extends: .python
+  stage: lint
+  script:
+    - uv run --no-sync ruff check bookmarks --output-format gitlab --output-file gl-code-quality-report.json --exit-zero
+    - uv run --no-sync ruff check bookmarks
+    - uv run --no-sync ruff format --check bookmarks
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-code-quality-report.json
+
+test:
+  extends: .python
+  stage: test
+  script:
+    - mkdir -p data
+    - >
+      uv run --no-sync --with pytest-cov==7.1.0 pytest -n auto
+      --junitxml=report.xml
+      --cov=bookmarks --cov-report=term:skip-covered --cov-report=xml:coverage.xml
+  coverage: '/TOTAL.*\s(\d+(?:\.\d+)?)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+# --------------------------------------------------------------- Package
+
+build-image:
+  stage: build
+  image: docker:28
+  services:
+    - docker:28-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    BUILD_CACHE: $CI_REGISTRY_IMAGE/buildcache:latest
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    # A container builder is needed to store the cache of every build stage in the registry
+    - docker context create ci
+    - docker buildx create --use --driver docker-container ci
+    - >
+      docker buildx build --file docker/default.Dockerfile --target linkding
+      --cache-from "type=registry,ref=$BUILD_CACHE"
+      --cache-to "type=registry,ref=$BUILD_CACHE,mode=max"
+      --tag "$APP_IMAGE" --load .
+    # Smoke test: start the image and wait until /health reports a working database
+    - docker run --detach --name app "$APP_IMAGE"
+    - |
+      for i in $(seq 1 40); do
+        docker exec app curl --fail --silent http://localhost:9090/health && break
+        sleep 3
+      done
+    - docker exec app curl --fail --silent http://localhost:9090/health | grep healthy || { docker logs app; exit 1; }
+    - docker push "$APP_IMAGE"
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        docker tag "$APP_IMAGE" "$CI_REGISTRY_IMAGE:latest"
+        docker push "$CI_REGISTRY_IMAGE:latest"
+      fi
+
+# ---------------------------------------------------------------- Secure
+# Secret detection, SAST, IaC scanning and dependency scanning come from the
+# included templates and need no extra configuration.
+
+container_scanning:
+  stage: scan
+  variables:
+    CS_IMAGE: $APP_IMAGE
+    CS_DOCKERFILE_PATH: docker/default.Dockerfile
+
+dast:
+  services:
+    - name: $APP_IMAGE
+      alias: app
+  variables:
+    # Throwaway account that only exists inside the scanned container
+    LD_SUPERUSER_NAME: dast
+    LD_SUPERUSER_PASSWORD: dast-scan-only
+    DAST_TARGET_URL: http://app:9090
+    DAST_TARGET_CHECK_TIMEOUT: "180"
+    DAST_AUTH_URL: http://app:9090/login/
+    DAST_AUTH_USERNAME: dast
+    DAST_AUTH_PASSWORD: dast-scan-only
+    DAST_AUTH_USERNAME_FIELD: "name:username"
+    DAST_AUTH_PASSWORD_FIELD: "name:password"
+    DAST_AUTH_SUBMIT_FIELD: "css:input[type=submit]"
+    DAST_AUTH_SUCCESS_IF_AT_URL: http://app:9090/bookmarks
+    DAST_AUTH_REPORT: "true"
+    DAST_SCOPE_EXCLUDE_URLS: http://app:9090/logout/
+  artifacts:
+    when: always
+    paths:
+      - gl-dast-debug-auth-report.html
+    reports:
+      dast: gl-dast-report.json
