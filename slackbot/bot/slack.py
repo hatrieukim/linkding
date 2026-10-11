@@ -88,14 +88,19 @@ class Slack:
         try:
             response = method(text=preview, blocks=self._blocks(part, buttons), **target)
         except SlackApiError as error:
-            if not self._markdown_block or error.response.get("error") not in (
-                "invalid_blocks",
-                "invalid_blocks_format",
-            ):
+            if not self._markdown_block:
                 raise
-            log.warning("Slack rejected the markdown block, falling back to mrkdwn sections")
+            # Most likely the markdown block is not available here. Try the
+            # older format once, and keep using it if that works.
+            log.warning(
+                "Slack refused a markdown block (%s), trying mrkdwn sections", error.response.get("error")
+            )
             self._markdown_block = False
-            response = method(text=preview, blocks=self._blocks(part, buttons), **target)
+            try:
+                response = method(text=preview, blocks=self._blocks(part, buttons), **target)
+            except SlackApiError:
+                self._markdown_block = True
+                raise
         return response["ts"]
 
     def post(self, channel: str, thread_ts: str, markdown: str, buttons: list | None = None) -> str:
