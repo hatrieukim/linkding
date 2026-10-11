@@ -3,6 +3,10 @@
 import requests
 
 
+class SpamRejected(Exception):
+    """GitLab's spam filter refused the content of a public issue."""
+
+
 class GitLab:
     def __init__(self, settings):
         self._api = f"{settings.gitlab_url}/api/v4"
@@ -31,14 +35,23 @@ class GitLab:
             self._agent_id = users[0]["id"]
         return self._agent_id
 
-    def create_issue(self, title: str, description: str) -> dict:
+    def create_issue(self, title: str, description: str, confidential: bool = False) -> dict:
         """Create an issue assigned to the agent, which starts the Developer flow."""
         response = self._session.post(
             f"{self._project}/issues",
-            json={"title": title, "description": description, "assignee_ids": [self.agent_id()]},
+            json={
+                "title": title,
+                "description": description,
+                "assignee_ids": [self.agent_id()],
+                "confidential": confidential,
+            },
             timeout=20,
         )
-        response.raise_for_status()
+        if response.status_code == 400 and "spam" in response.text.lower():
+            raise SpamRejected()
+        if not response.ok:
+            # The body says why, which the status alone does not.
+            raise RuntimeError(f"GitLab answered {response.status_code}: {response.text[:500]}")
         return response.json()
 
     def issue(self, iid: int) -> dict:

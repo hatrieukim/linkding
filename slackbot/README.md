@@ -79,6 +79,18 @@ When `slack-manifest.yaml` changes, paste it again under **App Manifest** in
 the Slack app settings and reinstall the app when Slack asks for it. New
 permissions only take effect after the reinstall.
 
+## When GitLab refuses an issue
+
+GitLab.com runs a spam filter on issues of public projects, and it sometimes
+refuses an ordinary issue. The bot then says so and offers three ways on:
+
+- **Tạo dạng riêng tư** creates the issue as confidential. Only project members
+  see it, and GitLab does not run the spam filter on issues that are not public.
+- **Bàn tiếp** continues the conversation, for example to ask Duo for a shorter
+  and plainer draft.
+- Create the issue on the GitLab website, then write `theo dõi #<number>` in the
+  thread. The bot reports on that issue as if it had created it.
+
 ## Who may use it
 
 The first person who writes to the bot becomes its owner, and nobody else is
