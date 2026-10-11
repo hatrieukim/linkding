@@ -124,3 +124,12 @@ class Slack:
         """Replace a message the bot posted earlier."""
         parts = split(normalize(markdown), MARKDOWN_LIMIT) or ["(trống)"]
         self._send(self._client.chat_update, parts[0], buttons, channel=channel, ts=ts)
+
+    def thread_messages(self, channel: str, thread_ts: str) -> list:
+        """Messages people wrote in a thread, oldest first. Bot messages are left out."""
+        response = self._client.conversations_replies(channel=channel, ts=thread_ts, limit=200)
+        return [
+            {"ts": message["ts"], "text": message.get("text", "")}
+            for message in response.get("messages", [])
+            if not message.get("bot_id") and not message.get("subtype")
+        ]

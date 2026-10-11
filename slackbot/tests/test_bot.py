@@ -74,6 +74,42 @@ def test_first_message_gets_the_rules_and_later_ones_reuse_the_session(make_bot)
     assert bot.slack.actions() == ["draft"]
 
 
+def test_duo_is_given_the_thread_messages_it_was_not_sent(make_bot):
+    bot = make_bot(["Chào.", "Đã hiểu."])
+    bot.slack.thread = [{"ts": "100.1", "text": "<@UBOT> hi"}]
+    bot.run({**TASK, "kind": "message", "ts": "100.1", "text": "hi"})
+
+    # Written without mentioning the bot, so Slack never delivered it.
+    bot.slack.thread += [
+        {"ts": "100.2", "text": "trên trang login thêm link đăng ký"},
+        {"ts": "100.3", "text": "<@UBOT> review đi"},
+    ]
+    bot.run({**TASK, "kind": "message", "ts": "100.3", "text": "review đi"})
+
+    first_goal, second_goal = (goal for goal, _ in bot.duo.calls)
+    assert "chưa đọc" not in first_goal
+    assert "- trên trang login thêm link đăng ký" in second_goal
+    assert second_goal.endswith("Tin nhắn mới nhất:\nreview đi")
+    assert "- hi" not in second_goal, "already seen in the first turn"
+
+
+def test_being_called_into_a_running_thread_brings_the_earlier_messages(make_bot):
+    bot = make_bot(["Đã đọc."])
+    bot.slack.thread = [
+        {"ts": "100.1", "text": "nút lưu bị lệch trên mobile"},
+        {"ts": "100.4", "text": "<@UBOT> tạo issue giúp"},
+    ]
+    bot.run({**TASK, "kind": "message", "ts": "100.4", "text": "tạo issue giúp"})
+    assert "- nút lưu bị lệch trên mobile" in bot.duo.calls[0][0]
+
+
+def test_other_people_in_a_thread_are_ignored_quietly(make_bot):
+    bot = make_bot(["Chào."])
+    bot.run({**TASK, "kind": "message", "text": "xin chào"})
+    bot.run({**TASK, "kind": "message", "text": "tôi nghĩ khác", "user": "U2", "quiet": True})
+    assert len(bot.duo.calls) == 1 and len(bot.slack.messages) == 1
+
+
 def test_only_the_owner_is_served(make_bot):
     bot = make_bot(["Chào."])
     bot.run({**TASK, "kind": "message", "text": "xin chào"})

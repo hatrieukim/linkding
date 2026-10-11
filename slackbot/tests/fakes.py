@@ -6,6 +6,7 @@ from bot.duo import DuoError, DuoReply
 class FakeSlack:
     def __init__(self):
         self.messages = []  # every message, in the order it was posted
+        self.thread = []  # what people wrote in the thread: {"ts", "text"}
 
     def post(self, channel, thread_ts, markdown, buttons=None):
         ts = f"m{len(self.messages) + 1}"
@@ -15,6 +16,9 @@ class FakeSlack:
     def update(self, channel, ts, markdown, buttons=None):
         message = next(m for m in self.messages if m["ts"] == ts)
         message.update(text=markdown, buttons=buttons)
+
+    def thread_messages(self, channel, thread_ts):
+        return self.thread
 
     def texts(self):
         return [m["text"] for m in self.messages]

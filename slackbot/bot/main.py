@@ -81,10 +81,13 @@ tasks = Tasks(settings, run_task)
 
 
 def from_slack() -> bool:
+    timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+    signature = request.headers.get("X-Slack-Signature", "")
+    # The verifier expects a numeric timestamp and fails on anything else.
+    if not timestamp.isdigit() or not signature:
+        return False
     return SignatureVerifier(settings.slack_signing_secret).is_valid(
-        request.get_data(as_text=True),
-        request.headers.get("X-Slack-Request-Timestamp", ""),
-        request.headers.get("X-Slack-Signature", ""),
+        request.get_data(as_text=True), timestamp, signature
     )
 
 
@@ -102,22 +105,34 @@ def slack_events():
         return jsonify(challenge=body.get("challenge", ""))
 
     event = body.get("event", {})
-    is_direct = event.get("type") == "message" and event.get("channel_type") == "im"
-    is_mention = event.get("type") == "app_mention"
     # Ignore edits, deletions, joins and everything written by bots, this one included.
-    if not (is_direct or is_mention) or event.get("subtype") or event.get("bot_id"):
+    if event.get("type") not in ("message", "app_mention") or event.get("subtype") or event.get("bot_id"):
         return "", 200
-    # Slack sends an event again when the answer was slow.
-    if not store().claim("events", body.get("event_id", event.get("ts", ""))):
+    channel, ts = event.get("channel", ""), event.get("ts", "")
+    thread_ts = event.get("thread_ts") or ts
+    thread_key = f"{channel}_{thread_ts}"
+
+    addressed = event["type"] == "app_mention" or event.get("channel_type") == "im"
+    if not addressed:
+        # In a channel the bot listens without being mentioned only inside
+        # threads it is already part of.
+        if not event.get("thread_ts") or store().get("threads", thread_key) is None:
+            return "", 200
+    # Slack sends an event again when the answer was slow, and sends a mention
+    # inside such a thread twice: as a mention and as a message.
+    if not store().claim("events", f"{channel}_{ts}"):
         return "", 200
+    store().save("threads", thread_key, {"channel": channel})
 
     tasks.enqueue(
         {
             "kind": "message",
-            "channel": event["channel"],
-            "thread_ts": event.get("thread_ts") or event["ts"],
+            "channel": channel,
+            "thread_ts": thread_ts,
+            "ts": ts,
             "user": event.get("user", ""),
             "text": re.sub(r"<@[A-Z0-9]+>", "", event.get("text", "")).strip(),
+            "quiet": not addressed,
         }
     )
     return "", 200
