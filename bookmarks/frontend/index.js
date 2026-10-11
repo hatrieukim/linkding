@@ -8,6 +8,7 @@ import "./components/filter-drawer.js";
 import "./components/form.js";
 import "./components/modal.js";
 import "./components/onboarding.js";
+import "./components/password-toggle.js";
 import "./components/search-autocomplete.js";
 import "./components/tag-autocomplete.js";
 import "./components/upload-button.js";

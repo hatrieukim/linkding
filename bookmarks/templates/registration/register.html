@@ -28,7 +28,7 @@
       </div>
       <div class="form-group">
         {% formlabel form.password 'Password' %}
-        {% formfield form.password class='form-input' %}
+        {% include 'shared/password_field.html' with field=form.password %}
         <div class="form-input-hint is-error" data-error-for="password" hidden></div>
       </div>
       <button type="submit" id="send-code-button" class="btn btn-primary width-100 mt-4">Send verification code</button>
