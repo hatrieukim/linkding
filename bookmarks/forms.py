@@ -1,5 +1,7 @@
 from django import forms
+from django.contrib.auth import password_validation
 from django.contrib.auth.models import User
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from django.utils import timezone
 
@@ -14,6 +16,7 @@ from bookmarks.models import (
     parse_tag_string,
     sanitize_tag_name,
 )
+from bookmarks.services import registration
 from bookmarks.services.bookmarks import create_bookmark, update_bookmark
 from bookmarks.type_defs import HttpRequest
 from bookmarks.validators import BookmarkURLValidator
@@ -383,3 +386,50 @@ class GlobalSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["guest_profile_user"].empty_label = "Standard profile"
+
+
+class RegistrationForm(forms.Form):
+    username = forms.CharField(
+        max_length=150,
+        validators=[UnicodeUsernameValidator()],
+        widget=FormInput(attrs={"autocomplete": "username"}),
+        help_text="Letters, digits and @/./+/-/_ only.",
+    )
+    email = forms.EmailField(
+        max_length=254,
+        widget=FormInput(attrs={"autocomplete": "email", "type": "email"}),
+    )
+    password = forms.CharField(
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={"class": "form-input", "autocomplete": "new-password"}
+        ),
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data["username"]
+        if registration.username_exists(username):
+            raise forms.ValidationError("A user with that username already exists.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data["email"]
+        if registration.email_exists(email):
+            raise forms.ValidationError(
+                "A user with that e-mail address already exists."
+            )
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        if password:
+            user = User(
+                username=cleaned_data.get("username", ""),
+                email=cleaned_data.get("email", ""),
+            )
+            try:
+                password_validation.validate_password(password, user)
+            except forms.ValidationError as e:
+                self.add_error("password", e)
+        return cleaned_data

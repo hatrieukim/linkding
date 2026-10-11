@@ -227,6 +227,36 @@ if LD_ENABLE_OIDC:
     OIDC_VERIFY_SSL = os.getenv("OIDC_VERIFY_SSL", True) in (True, "True", "true", "1")
     OIDC_USERNAME_CLAIM = os.getenv("OIDC_USERNAME_CLAIM", "email")
 
+# Allow visitors to create their own account, verified through an e-mail code
+LD_ENABLE_REGISTRATION = os.getenv("LD_ENABLE_REGISTRATION", False) in (
+    True,
+    "True",
+    "true",
+    "1",
+)
+
+# E-mail delivery, used to send verification codes. Without LD_EMAIL_HOST the
+# messages are written to the console instead of being sent.
+LD_EMAIL_HOST = os.getenv("LD_EMAIL_HOST", "")
+LD_EMAIL_PORT = int(os.getenv("LD_EMAIL_PORT", 587))
+LD_EMAIL_HOST_USER = os.getenv("LD_EMAIL_HOST_USER", "")
+LD_EMAIL_HOST_PASSWORD = os.getenv("LD_EMAIL_HOST_PASSWORD", "")
+LD_EMAIL_USE_TLS = os.getenv("LD_EMAIL_USE_TLS", True) in (True, "True", "true", "1")
+LD_EMAIL_USE_SSL = os.getenv("LD_EMAIL_USE_SSL", False) in (True, "True", "true", "1")
+LD_EMAIL_FROM = os.getenv("LD_EMAIL_FROM", "linkding <noreply@localhost>")
+
+if LD_EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = LD_EMAIL_HOST
+EMAIL_PORT = LD_EMAIL_PORT
+EMAIL_HOST_USER = LD_EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = LD_EMAIL_HOST_PASSWORD
+EMAIL_USE_TLS = LD_EMAIL_USE_TLS and not LD_EMAIL_USE_SSL
+EMAIL_USE_SSL = LD_EMAIL_USE_SSL
+DEFAULT_FROM_EMAIL = LD_EMAIL_FROM
+
 # Enable authentication proxy support if configured
 LD_ENABLE_AUTH_PROXY = os.getenv("LD_ENABLE_AUTH_PROXY", False) in (
     True,

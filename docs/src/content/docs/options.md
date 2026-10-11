@@ -254,6 +254,48 @@ Disables the login form on the login page.
 This is useful when you want to enforce authentication through OIDC only.
 When enabled, users will not be able to log in using their username and password, and only the "Login with OIDC" button will be shown on the login page.
 
+### `LD_ENABLE_REGISTRATION`
+
+Values: `True`, `False` | Default = `False`
+
+Allows visitors to create their own account on the `/register/` page, and adds a link to it on the login page.
+A visitor enters a username, email address and password, and linkding sends a 6-digit verification code to that address.
+The visitor enters the code on the same page, and the account is created and logged in as soon as the code is correct.
+Codes expire after 10 minutes, a wrong code can be tried 5 times, and a new code can be requested once per minute.
+
+Anyone who can reach your instance can create an account when this is enabled. Only turn it on if that is what you want.
+It requires a working email setup, see the `LD_EMAIL_*` options below. Without `LD_EMAIL_HOST`, codes are only written to the application log.
+
+### `LD_EMAIL_HOST`
+
+Default = `` (empty)
+
+The SMTP server that is used to send verification emails. If it is not set, emails are printed to the console instead of being sent.
+
+### `LD_EMAIL_PORT`
+
+Default = `587`
+
+The port of the SMTP server.
+
+### `LD_EMAIL_HOST_USER`, `LD_EMAIL_HOST_PASSWORD`
+
+Default = `` (empty)
+
+The credentials for the SMTP server. Leave empty if the server does not require authentication.
+
+### `LD_EMAIL_USE_TLS`, `LD_EMAIL_USE_SSL`
+
+Values: `True`, `False` | Default = `True` for `LD_EMAIL_USE_TLS`, `False` for `LD_EMAIL_USE_SSL`
+
+Whether to connect using STARTTLS (usually port 587) or implicit TLS (usually port 465). If `LD_EMAIL_USE_SSL` is enabled, `LD_EMAIL_USE_TLS` is ignored.
+
+### `LD_EMAIL_FROM`
+
+Default = `linkding <noreply@localhost>`
+
+The sender address of emails sent by linkding. Most SMTP providers require this to be an address you are allowed to send from.
+
 ### `LD_SESSION_COOKIE_AGE`
 
 Values: `Integer` as seconds | Default = `1209600`
