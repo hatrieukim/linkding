@@ -19,13 +19,17 @@ oauth_config:
   scopes:
     bot:
       - app_mentions:read
+      - channels:history
       - chat:write
+      - groups:history
       - im:history
 settings:
   event_subscriptions:
     request_url: https://linkding-bot-248896301327.asia-southeast1.run.app/slack/events
     bot_events:
       - app_mention
+      - message.channels
+      - message.groups
       - message.im
   interactivity:
     is_enabled: true

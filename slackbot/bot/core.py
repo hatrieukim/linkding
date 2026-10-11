@@ -66,7 +66,15 @@ TITLE: <tiêu đề tiếng Việt, tối đa 80 ký tự>
 
 ISSUE_FOOTER = "\n\n---\n_Issue này được viết từ một cuộc trao đổi trên Slack._"
 
+UNREAD = "Các tin nhắn trước đó trong thread mà bạn chưa đọc, cũ nhất trước:\n"
+
 THINKING = "⏳ Đang đọc code và suy nghĩ…"
+MAX_UNREAD = 20
+
+
+def ts_key(ts: str) -> tuple:
+    """Slack timestamps are strings like 1791732397.764479. Compare them exactly."""
+    return tuple(int(part) for part in ts.split("."))
 
 
 def parse_draft(text: str) -> tuple:
@@ -113,6 +121,9 @@ class Bot:
         allowed = self.settings.allowed_users or (self.store.owner(user),)
         if user in allowed:
             return True
+        # Other people talking in a thread are not talking to the bot.
+        if task.get("quiet"):
+            return False
         self.slack.post(
             task["channel"],
             task["thread_ts"],
@@ -131,13 +142,18 @@ class Bot:
         key = self._key(task)
         channel, thread_ts = task["channel"], task["thread_ts"]
         if not self.store.acquire_lock(f"thread_{key}", lock_ttl):
-            self.slack.post(channel, thread_ts, "Tôi đang trả lời tin trước. Chờ một chút rồi nhắn lại nhé.")
+            self.slack.post(
+                channel,
+                thread_ts,
+                "Tôi đang trả lời tin trước. Tin này tôi sẽ đọc cùng với tin kế tiếp của bạn.",
+            )
             return None, None
         placeholder = self.slack.post(channel, thread_ts, waiting)
         try:
             thread = self.store.get("threads", key) or {}
             reply = self.duo.run(goal(thread), thread.get("session_id"))
-            self.store.save("threads", key, {"session_id": reply.session_id})
+            seen = {"last_ts": task["ts"]} if task.get("ts") else {}
+            self.store.save("threads", key, {"session_id": reply.session_id, **seen})
             return reply, placeholder
         except DuoError as error:
             log.error("Duo turn failed for %s: %s", key, error)
@@ -158,7 +174,8 @@ class Bot:
             return self.on_draft(task)
 
         def goal(thread: dict) -> str:
-            return (NEXT_TURN if thread.get("session_id") else FIRST_TURN) + text
+            rules = NEXT_TURN if thread.get("session_id") else FIRST_TURN
+            return rules + self._unread(task, thread) + text
 
         reply, placeholder = self._ask_duo(task, goal, THINKING)
         if reply:
@@ -168,6 +185,32 @@ class Bot:
                 reply.text,
                 [button("Chốt, viết issue", "draft", "primary")],
             )
+
+    def _unread(self, task: dict, thread: dict) -> str:
+        """Thread messages Duo has not been given yet.
+
+        Slack only sends the bot what is addressed to it. When the bot is
+        called into a discussion that is already going on, or a message was
+        skipped because the bot was busy, Duo would otherwise miss part of
+        the conversation.
+        """
+        if not task.get("ts"):
+            return ""
+        try:
+            messages = self.slack.thread_messages(task["channel"], task["thread_ts"])
+        except Exception as error:
+            log.warning("could not read the thread: %s", error)
+            return ""
+        after = ts_key(thread["last_ts"]) if thread.get("last_ts") else (0,)
+        unread = [
+            re.sub(r"<@[A-Z0-9]+>", "", message["text"]).strip()[:1500]
+            for message in messages
+            if after < ts_key(message["ts"]) < ts_key(task["ts"])
+        ]
+        unread = [text for text in unread if text][-MAX_UNREAD:]
+        if not unread:
+            return ""
+        return UNREAD + "\n".join(f"- {text}" for text in unread) + "\n\nTin nhắn mới nhất:\n"
 
     def on_draft(self, task: dict) -> None:
         key = self._key(task)

@@ -70,14 +70,47 @@ def test_a_direct_message_is_queued_once_even_when_slack_retries(web):
     post_event(client, message(text="<@UBOT> thêm nút"))
     post_event(client, message(text="<@UBOT> thêm nút"))
     assert queued == [
-        {"kind": "message", "channel": "D1", "thread_ts": "100.1", "user": "U1", "text": "thêm nút"}
+        {
+            "kind": "message",
+            "channel": "D1",
+            "thread_ts": "100.1",
+            "ts": "100.1",
+            "user": "U1",
+            "text": "thêm nút",
+            "quiet": False,
+        }
     ]
 
 
 def test_a_reply_in_a_thread_keeps_the_thread(web):
     client, queued = web
     post_event(client, message(text="tiếp", ts="100.5", thread_ts="100.1"))
-    assert queued[0]["thread_ts"] == "100.1"
+    assert queued[0]["thread_ts"] == "100.1" and queued[0]["ts"] == "100.5"
+
+
+def in_channel(**event):
+    return message(channel="C1", channel_type="channel", **event)
+
+
+def test_channel_messages_reach_the_bot_only_in_its_own_threads(web):
+    client, queued = web
+    post_event(client, in_channel(text="chuyện khác", ts="200.1"))
+    post_event(client, in_channel(text="trả lời ai đó", ts="200.3", thread_ts="200.2"))
+    assert queued == []
+
+    post_event(client, in_channel(type="app_mention", text="<@UBOT> hi", ts="300.1"))
+    post_event(client, in_channel(text="không tag", ts="300.2", thread_ts="300.1"))
+    assert [(task["text"], task["quiet"]) for task in queued] == [("hi", False), ("không tag", True)]
+
+
+def test_a_mention_inside_a_thread_arrives_twice_and_is_queued_once(web):
+    client, queued = web
+    post_event(client, in_channel(type="app_mention", text="<@UBOT> hi", ts="300.1"))
+    post_event(client, in_channel(text="<@UBOT> review đi", ts="300.2", thread_ts="300.1"))
+    post_event(
+        client, in_channel(type="app_mention", text="<@UBOT> review đi", ts="300.2", thread_ts="300.1")
+    )
+    assert [task["text"] for task in queued] == ["hi", "review đi"]
 
 
 def test_bot_messages_and_edits_are_ignored(web):

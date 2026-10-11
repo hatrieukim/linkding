@@ -71,7 +71,13 @@ The order matters: the Cloud Run service does not start without its secrets.
    `deploy-bot` job puts the image on Cloud Run.
 6. **Verify the URL.** In the Slack app settings open **Event Subscriptions**
    and select **Retry** next to the request URL.
-7. Open a direct message with the bot and write what you want.
+7. Write to the bot in a direct message, or mention it in a channel it has
+   been added to. Its answer opens a thread. Inside that thread it reads every
+   message, so no further mention is needed.
+
+When `slack-manifest.yaml` changes, paste it again under **App Manifest** in
+the Slack app settings and reinstall the app when Slack asks for it. New
+permissions only take effect after the reinstall.
 
 ## Who may use it
 
