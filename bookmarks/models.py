@@ -63,6 +63,8 @@ class Bookmark(models.Model):
     web_archive_snapshot_url = models.CharField(max_length=2048, blank=True)
     favicon_file = models.CharField(max_length=512, blank=True)
     preview_image_file = models.CharField(max_length=512, blank=True)
+    # Whether the page allows being embedded in an iframe, None if not checked yet
+    embeddable = models.BooleanField(null=True, blank=True, default=None)
     unread = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     shared = models.BooleanField(default=False)
@@ -392,6 +394,12 @@ class UserProfile(models.Model):
         (TAG_GROUPING_ALPHABETICAL, "Alphabetical"),
         (TAG_GROUPING_DISABLED, "Disabled"),
     ]
+    BOOKMARK_VIEW_MODE_LIST = "list"
+    BOOKMARK_VIEW_MODE_GRID = "grid"
+    BOOKMARK_VIEW_MODE_CHOICES = [
+        (BOOKMARK_VIEW_MODE_LIST, "List"),
+        (BOOKMARK_VIEW_MODE_GRID, "Grid"),
+    ]
     user = models.OneToOneField(User, related_name="profile", on_delete=models.CASCADE)
     theme = models.CharField(
         max_length=10, choices=THEME_CHOICES, blank=False, default=THEME_AUTO
@@ -423,6 +431,12 @@ class UserProfile(models.Model):
         choices=WEB_ARCHIVE_INTEGRATION_CHOICES,
         blank=False,
         default=WEB_ARCHIVE_INTEGRATION_DISABLED,
+    )
+    bookmark_view_mode = models.CharField(
+        max_length=10,
+        choices=BOOKMARK_VIEW_MODE_CHOICES,
+        blank=False,
+        default=BOOKMARK_VIEW_MODE_LIST,
     )
     tag_search = models.CharField(
         max_length=10,

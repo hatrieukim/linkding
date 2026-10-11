@@ -6,6 +6,7 @@ from django.db.models import QuerySet
 from django.http import (
     HttpResponseBadRequest,
     HttpResponseForbidden,
+    HttpResponseNotAllowed,
     HttpResponseRedirect,
 )
 from django.shortcuts import render
@@ -16,6 +17,7 @@ from bookmarks.forms import BookmarkForm
 from bookmarks.models import (
     Bookmark,
     BookmarkSearch,
+    UserProfile,
 )
 from bookmarks.services import assets as asset_actions
 from bookmarks.services import tasks
@@ -210,6 +212,30 @@ def search_action(request: HttpRequest):
     query_string = urllib.parse.urlencode(query_params)
     url = base_url if not query_string else base_url + "?" + query_string
     return HttpResponseRedirect(url)
+
+
+@login_required
+def view_mode(request: HttpRequest):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    mode = request.POST.get("view_mode")
+    valid_modes = [choice[0] for choice in UserProfile.BOOKMARK_VIEW_MODE_CHOICES]
+    if mode not in valid_modes:
+        return HttpResponseBadRequest("Invalid view mode")
+
+    profile = request.user_profile
+    profile.bookmark_view_mode = mode
+    profile.save(update_fields=["bookmark_view_mode"])
+
+    if mode == UserProfile.BOOKMARK_VIEW_MODE_GRID:
+        # Pages are only embedded if they allow it, check existing bookmarks
+        tasks.schedule_bookmarks_without_embed_check(request.user)
+
+    return_url = get_safe_return_url(
+        request.POST.get("return_url"), reverse("linkding:bookmarks.index")
+    )
+    return HttpResponseRedirect(return_url)
 
 
 def convert_tag_string(tag_string: str):

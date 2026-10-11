@@ -42,6 +42,8 @@ def create_bookmark(
     tasks.load_favicon(current_user, bookmark)
     # Load preview image
     tasks.load_preview_image(current_user, bookmark)
+    # Check if the page can be embedded in the grid view
+    tasks.check_embeddable(current_user, bookmark)
     # Create HTML snapshot
     if (
         current_user.profile.enable_automatic_html_snapshots
@@ -60,11 +62,17 @@ def update_bookmark(bookmark: Bookmark, tag_string, current_user: User):
     _update_bookmark_tags(bookmark, tag_string, current_user)
     # Update dates
     bookmark.date_modified = timezone.now()
+    # The embed check result only applies to the previous URL
+    if has_url_changed:
+        bookmark.embeddable = None
     bookmark.save()
     # Update favicon
     tasks.load_favicon(current_user, bookmark)
     # Update preview image
     tasks.load_preview_image(current_user, bookmark)
+    # Update embeddable state
+    if bookmark.embeddable is None:
+        tasks.check_embeddable(current_user, bookmark)
 
     if has_url_changed:
         # Update web archive snapshot, if URL changed
