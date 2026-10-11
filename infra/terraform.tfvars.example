@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is not committed.
+project_id        = "linkding-transcend"
+project_number    = "248896301327"
+gitlab_project_id = "87484262"
+
+# Optional: set to create a monthly budget alert.
+# billing_account = "XXXXXX-XXXXXX-XXXXXX"
