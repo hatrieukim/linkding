@@ -1,5 +1,6 @@
 # GitLab CI/CD for linkding.
-# Covers the Verify, Secure and Package stages of the DevSecOps lifecycle.
+# Covers the Verify, Package, Secure, Configure and Release stages of the
+# DevSecOps lifecycle.
 # Runs on merge requests and on the default branch.
 
 workflow:
@@ -20,7 +21,16 @@ variables:
   AST_ENABLE_MR_PIPELINES: "true"
   APP_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
 
-  # TEMPORARY: lint, tests and all security scanners are switched off to keep
+  # Google Cloud targets created by the OpenTofu code in infra/.
+  # None of these values is a secret.
+  GCP_PROJECT: linkding-transcend
+  GCP_PROJECT_NUMBER: "248896301327"
+  GCP_REGION: asia-southeast1
+  GCP_REGISTRY: asia-southeast1-docker.pkg.dev/linkding-transcend/linkding
+  GCP_DEPLOYER: gitlab-deployer@linkding-transcend.iam.gserviceaccount.com
+  GCP_IDENTITY_PROVIDER: projects/248896301327/locations/global/workloadIdentityPools/gitlab/providers/gitlab-com
+
+  # TEMPORARY: lint, tests, infra validation and all security scanners are switched off to keep
   # the pipeline fast while deployment is being set up.
   # To switch everything back on, delete the six lines below.
   VERIFY_DISABLED: "true"
@@ -36,6 +46,8 @@ stages:
   - build
   - scan
   - dast
+  - staging
+  - production
 
 default:
   interruptible: true
@@ -105,6 +117,8 @@ infra-validate:
     - tofu -chdir=infra init -backend=false -input=false
     - tofu -chdir=infra validate
   rules:
+    - if: $VERIFY_DISABLED == "true"
+      when: never
     - changes:
         - infra/**/*
 
@@ -178,3 +192,123 @@ dast:
       - gl-dast-debug-auth-report.html
     reports:
       dast: gl-dast-report.json
+
+# --------------------------------------------------------------- Release
+# Merging into the default branch deploys to staging automatically.
+# Production is a manual step and is followed by a GitLab Release.
+#
+# Jobs sign in to Google Cloud with a short-lived OIDC token issued by GitLab.
+# Google accepts it only from this project and its protected default branch,
+# so no Google credential is stored in GitLab.
+
+.deploy:
+  image: gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
+  interruptible: false
+  variables:
+    GIT_STRATEGY: none
+    CLOUDSDK_CORE_PROJECT: $GCP_PROJECT
+    CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+    SERVICE: linkding-$CI_ENVIRONMENT_NAME
+    SERVICE_URL: https://linkding-$CI_ENVIRONMENT_NAME-$GCP_PROJECT_NUMBER.$GCP_REGION.run.app
+    TARGET_IMAGE: $GCP_REGISTRY/linkding:$CI_COMMIT_SHORT_SHA
+  id_tokens:
+    GCP_ID_TOKEN:
+      aud: https://iam.googleapis.com/projects/248896301327/locations/global/workloadIdentityPools/gitlab/providers/gitlab-com
+  before_script:
+    - apk add --no-cache --quiet skopeo curl
+    - echo "$GCP_ID_TOKEN" > /tmp/gitlab_id_token
+    - >
+      gcloud iam workload-identity-pools create-cred-config "$GCP_IDENTITY_PROVIDER"
+      --service-account="$GCP_DEPLOYER"
+      --credential-source-file=/tmp/gitlab_id_token
+      --output-file=/tmp/gcp_credentials.json
+    - gcloud auth login --cred-file=/tmp/gcp_credentials.json
+  script:
+    # Cloud Run cannot pull from the GitLab registry, so copy the image that
+    # this pipeline built and tested into Artifact Registry.
+    - >
+      skopeo copy
+      --src-creds "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD"
+      --dest-creds "oauth2accesstoken:$(gcloud auth print-access-token)"
+      "docker://$APP_IMAGE" "docker://$TARGET_IMAGE"
+    # Only the image changes. Everything else about the service is owned by infra/.
+    - gcloud run deploy "$SERVICE" --image "$TARGET_IMAGE" --region "$GCP_REGION"
+    # Check that the new revision is the one serving and that it reaches its database.
+    - |
+      RUNNING=$(gcloud run services describe "$SERVICE" --region "$GCP_REGION" --format 'value(spec.template.spec.containers[0].image)')
+      if [ "$RUNNING" != "$TARGET_IMAGE" ]; then
+        echo "Expected $TARGET_IMAGE but the service runs $RUNNING"
+        exit 1
+      fi
+    - |
+      for attempt in $(seq 1 24); do
+        HEALTH=$(curl --silent --max-time 20 "$SERVICE_URL/health" || true)
+        if echo "$HEALTH" | grep -q healthy; then break; fi
+        sleep 5
+      done
+      echo "$SERVICE_URL/health -> $HEALTH"
+      echo "$HEALTH" | grep -q healthy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+deploy-staging:
+  extends: .deploy
+  stage: staging
+  resource_group: staging
+  environment:
+    name: staging
+    url: https://linkding-staging-$GCP_PROJECT_NUMBER.$GCP_REGION.run.app
+    deployment_tier: staging
+
+deploy-production:
+  extends: .deploy
+  stage: production
+  resource_group: production
+  environment:
+    name: production
+    url: https://linkding-production-$GCP_PROJECT_NUMBER.$GCP_REGION.run.app
+    deployment_tier: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+
+# Records what went to production: a tag on the deployed commit and a release
+# page listing the changes since the previous release.
+create-release:
+  stage: production
+  image: alpine:3.22
+  interruptible: false
+  needs:
+    - deploy-production
+  variables:
+    GIT_DEPTH: 0
+    PRODUCTION_URL: https://linkding-production-$GCP_PROJECT_NUMBER.$GCP_REGION.run.app
+  script:
+    - apk add --no-cache --quiet curl git jq
+    - TAG="v$(cat version.txt)-r$CI_PIPELINE_IID"
+    - PREVIOUS=$(git describe --tags --abbrev=0 --match 'v*-r*' 2>/dev/null || true)
+    - |
+      if [ -n "$PREVIOUS" ]; then
+        CHANGES=$(git log --no-merges --pretty='- %s (%h)' "$PREVIOUS..$CI_COMMIT_SHA")
+        SINCE="Changes since $PREVIOUS"
+      else
+        CHANGES="- First release from the GitLab pipeline"
+        SINCE="Changes"
+      fi
+    - |
+      NOTES=$(printf '%s\n\n%s\n%s\n%s\n\n## %s\n\n%s\n' \
+        "Deployed to production by pipeline [#$CI_PIPELINE_IID]($CI_PIPELINE_URL)." \
+        "- Commit: $CI_COMMIT_SHA" \
+        "- Image: \`$GCP_REGISTRY/linkding:$CI_COMMIT_SHORT_SHA\`" \
+        "- Environment: $PRODUCTION_URL" \
+        "$SINCE" "$CHANGES")
+    - |
+      jq -n --arg tag "$TAG" --arg ref "$CI_COMMIT_SHA" --arg notes "$NOTES" --arg url "$PRODUCTION_URL" \
+        '{name: $tag, tag_name: $tag, ref: $ref, description: $notes,
+          assets: {links: [{name: "Production", url: $url, link_type: "other"}]}}' > release.json
+    - >
+      curl --fail-with-body --silent --show-error --request POST
+      --header "JOB-TOKEN: $CI_JOB_TOKEN" --header "Content-Type: application/json"
+      --data @release.json "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases" | jq -r '._links.self'
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
