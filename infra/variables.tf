@@ -79,3 +79,45 @@ variable "smtp_password_secret" {
   default     = "linkding-smtp-password"
 }
 
+
+variable "bot_bootstrap_image" {
+  description = "Image used when the Slack bot service is first created. The pipeline replaces it on the first deploy."
+  type        = string
+  default     = "us-docker.pkg.dev/cloudrun/container/hello:latest"
+}
+
+variable "bot_gitlab_token_secret" {
+  description = "Name of the Secret Manager secret holding the GitLab personal access token of the bot. Created by hand, see slackbot/README.md."
+  type        = string
+  default     = "linkding-bot-gitlab-token"
+}
+
+variable "bot_slack_token_secret" {
+  description = "Name of the Secret Manager secret holding the Slack bot token. Created by hand, see slackbot/README.md."
+  type        = string
+  default     = "linkding-bot-slack-token"
+}
+
+variable "bot_slack_signing_secret" {
+  description = "Name of the Secret Manager secret holding the Slack signing secret. Created by hand, see slackbot/README.md."
+  type        = string
+  default     = "linkding-bot-slack-signing-secret"
+}
+
+variable "bot_slack_allowed_users" {
+  description = "Slack member IDs the bot serves. Empty: the first person who writes to the bot becomes its only user."
+  type        = list(string)
+  default     = []
+}
+
+variable "bot_agent_username" {
+  description = "GitLab account that implements issues. The bot assigns every issue it creates to this account."
+  type        = string
+  default     = "duo-developer-gitlab-ai-hackathon"
+}
+
+variable "bot_duo_model" {
+  description = "Model the bot asks GitLab Duo to use for the conversation. Empty uses the default."
+  type        = string
+  default     = "claude_opus_5_5_vertex"
+}

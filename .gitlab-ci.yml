@@ -20,6 +20,7 @@ variables:
   # Security templates only run on branch pipelines unless this is set.
   AST_ENABLE_MR_PIPELINES: "true"
   APP_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  BOT_IMAGE: $CI_REGISTRY_IMAGE/slackbot:$CI_COMMIT_SHORT_SHA
 
   # Google Cloud targets created by the OpenTofu code in infra/.
   # None of these values is a secret.
@@ -312,3 +313,69 @@ create-release:
       --data @release.json "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases" | jq -r '._links.self'
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ------------------------------------------------------------- Slack bot
+# The bot in slackbot/ is a second, small service: the maintainer discusses a
+# change with GitLab Duo in Slack, the bot creates the issue and reports its
+# progress. These jobs run only when the bot itself changes.
+
+test-bot:
+  stage: build
+  image: python:3.13-slim
+  script:
+    - cd slackbot
+    - pip install --quiet --root-user-action=ignore --requirement requirements.txt pytest==9.1.1 ruff==0.17.0
+    - ruff check bot tests
+    - ruff format --check bot tests
+    - pytest --junitxml=report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: slackbot/report.xml
+  rules:
+    - changes:
+        - slackbot/**/*
+
+build-bot:
+  stage: build
+  image: docker:28
+  services:
+    - docker:28-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build --tag "$BOT_IMAGE" slackbot
+    # Smoke test: the service answers and the Duo CLI inside the image runs
+    - docker run --detach --name bot --env BOT_LOCAL=1 "$BOT_IMAGE"
+    - |
+      for i in $(seq 1 20); do
+        docker exec bot curl --fail --silent http://localhost:8080/health && break
+        sleep 2
+      done
+    - docker exec bot curl --fail --silent http://localhost:8080/health | grep healthy || { docker logs bot; exit 1; }
+    - docker exec bot duo --version
+    - docker push "$BOT_IMAGE"
+  rules:
+    - changes:
+        - slackbot/**/*
+
+deploy-bot:
+  extends: .deploy
+  stage: staging
+  resource_group: bot
+  needs:
+    - test-bot
+    - build-bot
+  variables:
+    SERVICE: linkding-bot
+    SERVICE_URL: https://linkding-bot-$GCP_PROJECT_NUMBER.$GCP_REGION.run.app
+    APP_IMAGE: $BOT_IMAGE
+    TARGET_IMAGE: $GCP_REGISTRY/slackbot:$CI_COMMIT_SHORT_SHA
+  environment:
+    name: bot
+    url: https://linkding-bot-$GCP_PROJECT_NUMBER.$GCP_REGION.run.app
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - slackbot/**/*

@@ -38,6 +38,17 @@ With Gmail, the user is the Gmail address and the password is an
 [app password](https://myaccount.google.com/apppasswords), not the account
 password. Set `enable_registration = false` to switch the feature off.
 
+## Slack bot
+
+`bot.tf` creates the service for the Slack bot in [`slackbot/`](../slackbot/README.md):
+a Cloud Run service, a Cloud Tasks queue, a Cloud Scheduler job that calls the
+bot every minute, a Firestore database and the permissions between them.
+
+The bot needs three secrets that are created by hand before the first apply,
+because their values come from Slack and GitLab: `linkding-bot-slack-token`,
+`linkding-bot-slack-signing-secret` and `linkding-bot-gitlab-token`. The steps
+are in [`slackbot/README.md`](../slackbot/README.md#set-up).
+
 ## Apply
 
 Requires `gcloud` and `tofu`, and a Google Cloud project with billing enabled.
