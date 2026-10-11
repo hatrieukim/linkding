@@ -22,6 +22,22 @@ OpenTofu is applied from a maintainer's machine, not from CI. The pipeline only 
 
 Google accepts an OIDC token from gitlab.com only if it comes from this project and from a job on the protected `master` branch. The token is exchanged for short-lived credentials of the `gitlab-deployer` service account. No Google credential is stored in GitLab.
 
+## Registration e-mail
+
+Visitors can create their own account. The app e-mails them a six digit code
+through an SMTP server. The SMTP credentials belong to a mail account outside
+this project, so they are not generated here. Create the two secrets once, by
+hand, before applying:
+
+```sh
+printf '%s' 'sender@example.com' | gcloud secrets create linkding-smtp-user --data-file=-
+gcloud secrets create linkding-smtp-password --data-file=-   # paste the password, then Ctrl-D
+```
+
+With Gmail, the user is the Gmail address and the password is an
+[app password](https://myaccount.google.com/apppasswords), not the account
+password. Set `enable_registration = false` to switch the feature off.
+
 ## Apply
 
 Requires `gcloud` and `tofu`, and a Google Cloud project with billing enabled.

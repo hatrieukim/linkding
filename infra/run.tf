@@ -41,6 +41,19 @@ resource "google_secret_manager_secret_iam_member" "runtime_secret_key" {
   member    = google_service_account.runtime[each.key].member
 }
 
+# The SMTP credentials are created by hand, because they belong to a mail
+# account outside this project. OpenTofu only grants access to them.
+resource "google_secret_manager_secret_iam_member" "runtime_smtp" {
+  for_each = var.enable_registration ? {
+    for pair in setproduct(local.environments, [var.smtp_user_secret, var.smtp_password_secret]) :
+    "${pair[0]}/${pair[1]}" => { environment = pair[0], secret = pair[1] }
+  } : {}
+
+  secret_id = "projects/${var.project_id}/secrets/${each.value.secret}"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = google_service_account.runtime[each.value.environment].member
+}
+
 resource "google_cloud_run_v2_service" "app" {
   for_each = local.environments
 
@@ -134,6 +147,35 @@ resource "google_cloud_run_v2_service" "app" {
         name  = "LD_CSRF_TRUSTED_ORIGINS"
         value = local.service_urls[each.key]
       }
+      # Self-service registration: the app e-mails a six digit code and
+      # creates the account once the visitor enters it.
+      dynamic "env" {
+        for_each = var.enable_registration ? {
+          LD_ENABLE_REGISTRATION = "True"
+          LD_EMAIL_HOST          = var.smtp_host
+          LD_EMAIL_PORT          = tostring(var.smtp_port)
+        } : {}
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+      dynamic "env" {
+        for_each = var.enable_registration ? {
+          LD_EMAIL_HOST_USER     = var.smtp_user_secret
+          LD_EMAIL_FROM          = var.smtp_user_secret
+          LD_EMAIL_HOST_PASSWORD = var.smtp_password_secret
+        } : {}
+        content {
+          name = env.key
+          value_source {
+            secret_key_ref {
+              secret  = env.value
+              version = "latest"
+            }
+          }
+        }
+      }
       # Cloud Run only gives CPU while a request is being served, so the
       # background worker would stall.
       env {
@@ -184,6 +226,7 @@ resource "google_cloud_run_v2_service" "app" {
     google_secret_manager_secret_iam_member.runtime_db_password,
     google_secret_manager_secret_iam_member.runtime_superuser_password,
     google_secret_manager_secret_iam_member.runtime_secret_key,
+    google_secret_manager_secret_iam_member.runtime_smtp,
     google_secret_manager_secret_version.secret_key,
     google_secret_manager_secret_version.db_password,
     google_secret_manager_secret_version.superuser_password,
