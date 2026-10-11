@@ -1,0 +1,21 @@
+# Environment for GitLab Duo Agent Platform flows that run in CI/CD, such as
+# the Developer flow. Read from the default branch only.
+# https://docs.gitlab.com/user/duo_agent_platform/flows/execution/
+
+# Runs before the agent starts and outside its network sandbox, so this is the
+# place to download dependencies. The default image has Python 3.12 only, so uv
+# also fetches the Python version the project needs.
+setup_script:
+  - python3 -m pip install --quiet --root-user-action=ignore uv==0.8.13
+  # uwsgi only serves the app in the container image. It has no prebuilt wheel
+  # and tests do not need it.
+  - uv sync --frozen --no-install-package uwsgi
+  - mkdir -p data
+  - uv run --no-sync python --version
+
+# While the agent works, outbound access is limited to GitLab's recommended
+# list (package registries and similar) plus the staging application.
+network_policy:
+  include_recommended_allowed: true
+  allowed_domains:
+    - linkding-staging-248896301327.asia-southeast1.run.app
