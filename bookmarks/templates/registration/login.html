@@ -31,5 +31,10 @@
          href="{% url 'oidc_authentication_init' %}"
          data-turbo="false">Login with OIDC</a>
     {% endif %}
+    {% if enable_registration %}
+      <p class="auth-switch">
+        Don't have an account? <a href="{% url 'register' %}">Create an account</a>
+      </p>
+    {% endif %}
   </main>
 {% endblock %}

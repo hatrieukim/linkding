@@ -1,0 +1,217 @@
+{% extends 'shared/layout.html' %}
+{% load shared %}
+{% block head %}
+  {% with page_title="Create an account - Linkding" %}{{ block.super }}{% endwith %}
+{% endblock %}
+{% block content %}
+  <main class="auth-page" aria-labelledby="main-heading">
+    <div class="section-header">
+      <h1 id="main-heading">Create an account</h1>
+    </div>
+    <form id="register-form"
+          method="post"
+          action="{% url 'register_send_code' %}"
+          data-turbo="false"
+          novalidate>
+      {% csrf_token %}
+      <p id="register-error" class="form-input-hint is-error" hidden></p>
+      <div class="form-group">
+        {% formlabel form.username 'Username' %}
+        {% formfield form.username class='form-input' has_help=True %}
+        <div id="{{ form.username.auto_id }}_help" class="form-input-hint">{{ form.username.help_text }}</div>
+        <div class="form-input-hint is-error" data-error-for="username" hidden></div>
+      </div>
+      <div class="form-group">
+        {% formlabel form.email 'Email' %}
+        {% formfield form.email class='form-input' %}
+        <div class="form-input-hint is-error" data-error-for="email" hidden></div>
+      </div>
+      <div class="form-group">
+        {% formlabel form.password 'Password' %}
+        {% formfield form.password class='form-input' %}
+        <div class="form-input-hint is-error" data-error-for="password" hidden></div>
+      </div>
+      <button type="submit" id="send-code-button" class="btn btn-primary width-100 mt-4">Send verification code</button>
+    </form>
+    <form id="verify-form"
+          method="post"
+          action="{% url 'register_verify_code' %}"
+          data-turbo="false"
+          hidden>
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_code" class="form-label">Verification code</label>
+        <input type="text"
+               id="id_code"
+               name="code"
+               class="form-input verification-code"
+               inputmode="numeric"
+               autocomplete="one-time-code"
+               maxlength="{{ code_length }}"
+               pattern="[0-9]*"
+               placeholder="{% for i in '012345' %}•{% endfor %}"
+               aria-describedby="code-hint">
+        <div id="code-hint" class="form-input-hint" role="status" aria-live="polite">
+          We sent a {{ code_length }}-digit code to your email. Enter it here to finish.
+        </div>
+      </div>
+      <button type="button" id="resend-button" class="btn btn-link" disabled>Resend code</button>
+    </form>
+    <p class="auth-switch">
+      Already have an account? <a href="{% url 'login' %}">Login</a>
+    </p>
+    <script type="application/javascript">
+      (function init() {
+        const codeLength = {{ code_length }};
+        const resendInterval = {{ resend_interval }};
+        const registerForm = document.getElementById('register-form');
+        const verifyForm = document.getElementById('verify-form');
+        const sendButton = document.getElementById('send-code-button');
+        const resendButton = document.getElementById('resend-button');
+        const generalError = document.getElementById('register-error');
+        const codeInput = document.getElementById('id_code');
+        const codeHint = document.getElementById('code-hint');
+        const hintText = codeHint.textContent.trim();
+        let resendTimer = null;
+        let verifying = false;
+
+        function clearErrors() {
+          generalError.hidden = true;
+          registerForm.querySelectorAll('[data-error-for]').forEach((el) => {
+            el.hidden = true;
+            el.textContent = '';
+          });
+          registerForm.querySelectorAll('.form-input').forEach((el) => {
+            el.classList.remove('is-error');
+          });
+        }
+
+        function showErrors(errors) {
+          Object.entries(errors).forEach(([field, messages]) => {
+            const el = registerForm.querySelector(`[data-error-for="${field}"]`);
+            if (el) {
+              el.textContent = messages.join(' ');
+              el.hidden = false;
+              registerForm.elements[field].classList.add('is-error');
+            } else {
+              generalError.textContent = messages.join(' ');
+              generalError.hidden = false;
+            }
+          });
+        }
+
+        function setCodeState(state, message) {
+          codeInput.classList.toggle('is-success', state === 'success');
+          codeInput.classList.toggle('is-error', state === 'error');
+          codeHint.classList.toggle('is-error', state === 'error');
+          codeHint.textContent = message || hintText;
+        }
+
+        function setFormLocked(locked) {
+          registerForm.querySelectorAll('input').forEach((input) => {
+            if (input.type !== 'hidden') input.readOnly = locked;
+          });
+          sendButton.hidden = locked;
+        }
+
+        function startResendCountdown() {
+          let remaining = resendInterval;
+          resendButton.disabled = true;
+          clearInterval(resendTimer);
+          const tick = () => {
+            if (remaining <= 0) {
+              clearInterval(resendTimer);
+              resendButton.textContent = 'Resend code';
+              resendButton.disabled = false;
+              return;
+            }
+            resendButton.textContent = `Resend code in ${remaining}s`;
+            remaining -= 1;
+          };
+          tick();
+          resendTimer = setInterval(tick, 1000);
+        }
+
+        async function sendCode() {
+          clearErrors();
+          sendButton.disabled = true;
+          resendButton.disabled = true;
+          try {
+            const response = await fetch(registerForm.action, {
+              method: 'POST',
+              body: new FormData(registerForm),
+              headers: { Accept: 'application/json' },
+            });
+            const data = await response.json();
+            if (!response.ok) {
+              showErrors(data.errors || { __all__: ['Something went wrong.'] });
+              if (response.status === 429) startResendCountdown();
+              return;
+            }
+            setFormLocked(true);
+            verifyForm.hidden = false;
+            codeInput.value = '';
+            setCodeState('neutral');
+            codeInput.focus();
+            startResendCountdown();
+          } catch (e) {
+            showErrors({ __all__: ['Could not reach the server. Please try again.'] });
+          } finally {
+            sendButton.disabled = false;
+          }
+        }
+
+        async function verifyCode() {
+          if (verifying) return;
+          verifying = true;
+          codeInput.readOnly = true;
+          setCodeState('neutral', 'Checking…');
+          try {
+            const response = await fetch(verifyForm.action, {
+              method: 'POST',
+              body: new FormData(verifyForm),
+              headers: { Accept: 'application/json' },
+            });
+            const data = await response.json();
+            if (response.ok) {
+              setCodeState('success', 'Code verified. Creating your account…');
+              window.location.href = data.redirect_url;
+              return;
+            }
+            setCodeState('error', data.error);
+            if (data.restart) {
+              setFormLocked(false);
+              verifyForm.hidden = true;
+              generalError.textContent = data.error;
+              generalError.hidden = false;
+              return;
+            }
+            codeInput.readOnly = false;
+            codeInput.select();
+            codeInput.focus();
+          } catch (e) {
+            setCodeState('error', 'Could not reach the server. Please try again.');
+            codeInput.readOnly = false;
+          } finally {
+            verifying = false;
+          }
+        }
+
+        registerForm.addEventListener('submit', (event) => {
+          event.preventDefault();
+          sendCode();
+        });
+        resendButton.addEventListener('click', sendCode);
+        verifyForm.addEventListener('submit', (event) => {
+          event.preventDefault();
+          if (codeInput.value.length === codeLength) verifyCode();
+        });
+        codeInput.addEventListener('input', () => {
+          codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, codeLength);
+          setCodeState('neutral');
+          if (codeInput.value.length === codeLength) verifyCode();
+        });
+      })();
+    </script>
+  </main>
+{% endblock %}

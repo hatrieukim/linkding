@@ -9,6 +9,7 @@ from bookmarks.views import assets as assets_views
 from bookmarks.views import auth as linkding_auth_views
 from bookmarks.views import bookmarks as bookmarks_views
 from bookmarks.views import bundles as bundles_views
+from bookmarks.views import registration as registration_views
 from bookmarks.views import settings as settings_views
 from bookmarks.views import tags as tags_views
 from bookmarks.views import toasts as toasts_views
@@ -134,6 +135,17 @@ urlpatterns += [
         name="login",
     ),
     path("logout/", django_auth_views.LogoutView.as_view(), name="logout"),
+    path("register/", registration_views.register, name="register"),
+    path(
+        "register/send-code/",
+        registration_views.send_code,
+        name="register_send_code",
+    ),
+    path(
+        "register/verify-code/",
+        registration_views.verify_code,
+        name="register_verify_code",
+    ),
     path(
         "change-password/",
         linkding_auth_views.LinkdingPasswordChangeView.as_view(),

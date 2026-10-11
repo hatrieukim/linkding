@@ -2,3 +2,14 @@
   margin: 0 auto;
   max-width: 350px;
 }
+
+.auth-page .auth-switch {
+  margin-top: var(--unit-4);
+  text-align: center;
+}
+
+.auth-page .verification-code {
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.4em;
+  text-align: center;
+}

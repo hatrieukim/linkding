@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your linkding verification code</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#ffffff;">
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           style="background-color:#ffffff;">
+      <tr>
+        <td align="center" style="padding:48px 16px;">
+          <table role="presentation"
+                 width="100%"
+                 cellpadding="0"
+                 cellspacing="0"
+                 style="max-width:440px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#202123;">
+            <tr>
+              <td style="font-size:20px;font-weight:600;padding-bottom:32px;">linkding</td>
+            </tr>
+            <tr>
+              <td style="font-size:24px;font-weight:600;line-height:32px;padding-bottom:12px;">
+                Verify your email address
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:16px;line-height:24px;color:#353740;padding-bottom:24px;">
+                Hi {{ username }}, enter this code on the sign-up page to finish creating your account.
+              </td>
+            </tr>
+            <tr>
+              <td align="center"
+                  style="background-color:#f7f7f8;border-radius:8px;padding:24px 0;font-size:36px;font-weight:600;letter-spacing:10px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;color:#202123;">
+                {{ code }}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:14px;line-height:20px;color:#6e6e80;padding-top:24px;">
+                This code expires in {{ expires_in_minutes }} minutes.
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:14px;line-height:20px;color:#6e6e80;padding-top:32px;border-top:1px solid #ececf1;margin-top:32px;">
+                If you didn't try to sign up, you can safely ignore this email.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
