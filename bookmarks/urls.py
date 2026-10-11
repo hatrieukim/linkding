@@ -9,6 +9,7 @@ from bookmarks.views import assets as assets_views
 from bookmarks.views import auth as linkding_auth_views
 from bookmarks.views import bookmarks as bookmarks_views
 from bookmarks.views import bundles as bundles_views
+from bookmarks.views import onboarding as onboarding_views
 from bookmarks.views import registration as registration_views
 from bookmarks.views import settings as settings_views
 from bookmarks.views import tags as tags_views
@@ -89,6 +90,12 @@ urlpatterns = [
     path("settings/export", settings_views.bookmark_export, name="settings.export"),
     # Toasts
     path("toasts/acknowledge", toasts_views.acknowledge, name="toasts.acknowledge"),
+    # Onboarding
+    path(
+        "onboarding/complete",
+        onboarding_views.complete,
+        name="onboarding.complete",
+    ),
     # API
     path("api/", include(api_routes.default_router.urls)),
     path("api/bookmarks/", include(api_routes.bookmark_router.urls)),

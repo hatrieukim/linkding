@@ -45,6 +45,13 @@
     </div>
     <div class="modals">
       {% block overlays %}{% endblock %}
+      {% if request.user.is_authenticated %}
+        <ld-onboarding data-auto-open="{% if request.user.profile.onboarding_completed %}false{% else %}true{% endif %}"
+                       data-complete-url="{% url 'linkding:onboarding.complete' %}"
+                       data-new-url="{% url 'linkding:bookmarks.new' %}"
+                       data-csrf-token="{{ csrf_token }}">
+        </ld-onboarding>
+      {% endif %}
     </div>
     {% include 'shared/dev_tool.html' %}
   </body>
