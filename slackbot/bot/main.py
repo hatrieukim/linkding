@@ -81,10 +81,13 @@ tasks = Tasks(settings, run_task)
 
 
 def from_slack() -> bool:
+    timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+    signature = request.headers.get("X-Slack-Signature", "")
+    # The verifier expects a numeric timestamp and fails on anything else.
+    if not timestamp.isdigit() or not signature:
+        return False
     return SignatureVerifier(settings.slack_signing_secret).is_valid(
-        request.get_data(as_text=True),
-        request.headers.get("X-Slack-Request-Timestamp", ""),
-        request.headers.get("X-Slack-Signature", ""),
+        request.get_data(as_text=True), timestamp, signature
     )
 
 

@@ -52,6 +52,13 @@ def test_requests_not_signed_by_slack_are_rejected(web):
     assert queued == []
 
 
+def test_requests_without_slack_headers_are_rejected(web):
+    client, queued = web
+    assert client.post("/slack/events", json=message(text="hi")).status_code == 401
+    assert client.post("/slack/interactions", data={"payload": "{}"}).status_code == 401
+    assert queued == []
+
+
 def test_url_verification_answers_the_challenge(web):
     client, _ = web
     response = post_event(client, {"type": "url_verification", "challenge": "abc"})
