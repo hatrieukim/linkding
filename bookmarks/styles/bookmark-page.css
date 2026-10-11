@@ -318,6 +318,105 @@ ul.bookmark-list {
   }
 }
 
+/* Bookmark grid view */
+.view-mode-toggle {
+  flex: 0 0 auto;
+}
+
+ul.bookmark-list.grid-view {
+  --grid-embed-width: 414px;
+  --grid-embed-height: 896px;
+  --grid-embed-scale: 0.5;
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(calc(var(--grid-embed-width) * var(--grid-embed-scale)), 1fr)
+  );
+  gap: var(--unit-4);
+
+  > li {
+    flex-direction: column;
+    margin: 0;
+
+    /* Embedded page, a phone sized frame that is scaled down to fit the tile */
+    & .page-embed {
+      position: relative;
+      width: calc(var(--grid-embed-width) * var(--grid-embed-scale));
+      max-width: 100%;
+      height: calc(var(--grid-embed-height) * var(--grid-embed-scale));
+      overflow: hidden;
+      border-radius: var(--border-radius);
+      border: solid 1px var(--border-color);
+      background: var(--body-color-contrast);
+    }
+
+    & .page-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: var(--grid-embed-width);
+      height: var(--grid-embed-height);
+      border: none;
+      background: #fff;
+      transform: scale(var(--grid-embed-scale));
+      transform-origin: top left;
+    }
+
+    /* Overlay that makes the whole tile a link to the page, the embedded page is a visual preview only */
+    & .page-embed-link {
+      position: absolute;
+      inset: 0;
+    }
+
+    & .page-fallback-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    & .page-fallback {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--unit-2);
+      height: 100%;
+      padding: var(--unit-2);
+      text-align: center;
+      font-weight: var(--bookmark-title-weight);
+      color: var(--bookmark-title-color);
+      overflow-wrap: anywhere;
+
+      & .favicon {
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    &.unread .page-embed {
+      border-color: var(--primary-color);
+    }
+
+    & .content {
+      flex: 0 0 auto;
+      width: calc(var(--grid-embed-width) * var(--grid-embed-scale));
+      max-width: 100%;
+      margin-top: var(--unit-1);
+    }
+
+    & .url-path,
+    & .description,
+    & .tags,
+    & .notes {
+      overflow-wrap: anywhere;
+    }
+  }
+
+  @media (max-width: 600px) {
+    --grid-embed-scale: 0.45;
+  }
+}
+
 /* Bookmark pagination */
 .bookmark-pagination {
   margin-top: var(--unit-4);

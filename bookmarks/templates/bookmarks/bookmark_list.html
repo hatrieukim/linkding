@@ -3,7 +3,7 @@
   {% include 'bookmarks/empty_bookmarks.html' %}
 {% else %}
   <section aria-label="Bookmark list">
-    <ul class="bookmark-list{% if bookmark_list.show_notes %} show-notes{% endif %}"
+    <ul class="bookmark-list{% if bookmark_list.show_notes %} show-notes{% endif %}{% if bookmark_list.is_grid %} grid-view{% endif %}"
         role="list"
         tabindex="-1"
         style="--ld-bookmark-description-max-lines:{{ bookmark_list.description_max_lines }}"
@@ -12,6 +12,40 @@
         <li data-bookmark-id="{{ bookmark_item.id }}"
             role="listitem"
             {% if bookmark_item.css_classes %}class="{{ bookmark_item.css_classes }}"{% endif %}>
+          {% if bookmark_list.is_grid %}
+            <div class="page-embed">
+              {% if bookmark_item.embeddable %}
+                {# Sandboxed without allow-same-origin, so that the embedded page can not access the app #}
+                <iframe class="page-frame"
+                        src="{{ bookmark_item.url }}"
+                        title="{{ bookmark_item.title }}"
+                        width="414"
+                        height="896"
+                        loading="lazy"
+                        sandbox="allow-scripts"
+                        referrerpolicy="no-referrer"
+                        tabindex="-1"></iframe>
+              {% elif bookmark_item.preview_image_file %}
+                <img class="page-fallback-image"
+                     src="{% static bookmark_item.preview_image_file %}"
+                     alt=""
+                     loading="lazy" />
+              {% else %}
+                <div class="page-fallback">
+                  {% if bookmark_item.favicon_file and bookmark_list.show_favicons %}
+                    <img class="favicon" src="{% static bookmark_item.favicon_file %}" alt="">
+                  {% endif %}
+                  <span>{{ bookmark_item.title }}</span>
+                </div>
+              {% endif %}
+              <a class="page-embed-link"
+                 href="{{ bookmark_item.url }}"
+                 target="{{ bookmark_list.link_target }}"
+                 rel="noopener"
+                 aria-label="Open {{ bookmark_item.title }}"
+                 tabindex="-1"></a>
+            </div>
+          {% endif %}
           <div class="content">
             <div class="title">
               {% if not bookmark_list.is_preview %}
@@ -153,7 +187,7 @@
               {% endif %}
             </div>
           </div>
-          {% if bookmark_list.show_preview_images %}
+          {% if bookmark_list.show_preview_images and not bookmark_list.is_grid %}
             {% if bookmark_item.preview_image_file %}
               <img class="preview-image"
                    src="{% static bookmark_item.preview_image_file %}"

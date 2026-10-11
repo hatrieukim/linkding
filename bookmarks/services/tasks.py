@@ -11,7 +11,12 @@ from huey.exceptions import TaskLockedException
 from waybackpy.exceptions import TooManyRequestsError, WaybackError
 
 from bookmarks.models import Bookmark, BookmarkAsset, UserProfile
-from bookmarks.services import assets, favicon_loader, preview_image_loader
+from bookmarks.services import (
+    assets,
+    embed_checker,
+    favicon_loader,
+    preview_image_loader,
+)
 from bookmarks.services.website_loader import DEFAULT_USER_AGENT, load_website_metadata
 
 logger = logging.getLogger(__name__)
@@ -214,6 +219,56 @@ def _schedule_bookmarks_without_previews_task(user_id: int):
     for bookmark in bookmarks:
         try:
             _load_preview_image_task(bookmark.id)
+        except Exception as exc:
+            logging.exception(exc)
+
+
+def is_embed_check_active(user: User) -> bool:
+    # Only needed for the grid view, which embeds the bookmarked pages
+    return (
+        user.profile.bookmark_view_mode == UserProfile.BOOKMARK_VIEW_MODE_GRID
+        and not settings.LD_DISABLE_BACKGROUND_TASKS
+    )
+
+
+def check_embeddable(user: User, bookmark: Bookmark):
+    if is_embed_check_active(user):
+        _check_embeddable_task(bookmark.id)
+
+
+@task()
+def _check_embeddable_task(bookmark_id: int):
+    try:
+        bookmark = Bookmark.objects.get(id=bookmark_id)
+    except Bookmark.DoesNotExist:
+        return
+
+    logger.info(f"Check if bookmark is embeddable. url={bookmark.url}")
+
+    embeddable = embed_checker.check_embeddable(bookmark.url)
+
+    if embeddable != bookmark.embeddable:
+        bookmark.embeddable = embeddable
+        bookmark.save(update_fields=["embeddable"])
+        logger.info(
+            f"Successfully updated embeddable state for bookmark. url={bookmark.url} embeddable={embeddable}"
+        )
+
+
+def schedule_bookmarks_without_embed_check(user: User):
+    if is_embed_check_active(user):
+        _schedule_bookmarks_without_embed_check_task(user.id)
+
+
+@task()
+def _schedule_bookmarks_without_embed_check_task(user_id: int):
+    user = User.objects.get(id=user_id)
+    bookmarks = Bookmark.objects.filter(embeddable__isnull=True, owner=user)
+
+    # TODO: Implement bulk task creation
+    for bookmark in bookmarks:
+        try:
+            _check_embeddable_task(bookmark.id)
         except Exception as exc:
             logging.exception(exc)
 

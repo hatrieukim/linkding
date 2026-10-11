@@ -9,6 +9,36 @@
         <h1 id="main-heading">{{ bookmark_list.list_title }}</h1>
         <div class="header-controls">
           {% bookmark_search bookmark_list.search mode=bookmark_list.search_mode %}
+          {% if bookmark_list.can_change_view_mode %}
+            <form class="view-mode-toggle btn-group ml-2"
+                  action="{% url 'linkding:bookmarks.view_mode' %}"
+                  method="post">
+              {% csrf_token %}
+              <input type="hidden" name="return_url" value="{{ bookmark_list.return_url }}">
+              <button type="submit"
+                      name="view_mode"
+                      value="list"
+                      class="btn{% if not bookmark_list.is_grid %} active{% endif %}"
+                      aria-pressed="{% if bookmark_list.is_grid %}false{% else %}true{% endif %}"
+                      title="List view"
+                      aria-label="List view">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                              </button>
+              <button type="submit"
+                      name="view_mode"
+                      value="grid"
+                      class="btn{% if bookmark_list.is_grid %} active{% endif %}"
+                      aria-pressed="{% if bookmark_list.is_grid %}true{% else %}false{% endif %}"
+                      title="Grid view"
+                      aria-label="Grid view">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" />
+                </svg>
+                              </button>
+            </form>
+          {% endif %}
           {% if bookmark_list.bulk_edit_enabled %}
             <button class="btn hide-sm ml-2 bulk-edit-active-toggle" title="Bulk edit">
               <svg width="20px" height="20px">

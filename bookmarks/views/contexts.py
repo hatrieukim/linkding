@@ -164,6 +164,7 @@ class BookmarkItem:
                 )
         self.favicon_file = bookmark.favicon_file
         self.preview_image_file = bookmark.preview_image_file
+        self.embeddable = bookmark.embeddable is True
         self.is_archived = bookmark.is_archived
         self.unread = bookmark.unread
         self.owner = bookmark.owner
@@ -237,8 +238,17 @@ class BookmarkListContext:
         self.show_preview_images = user_profile.enable_preview_images
         self.show_notes = user_profile.permanent_notes
         self.collapse_side_panel = user_profile.collapse_side_panel
+        self.view_mode = user_profile.bookmark_view_mode
+        self.can_change_view_mode = user.is_authenticated
         self.is_preview = False
         self.snapshot_feature_enabled = settings.LD_ENABLE_SNAPSHOTS
+
+    @property
+    def is_grid(self) -> bool:
+        return (
+            self.view_mode == UserProfile.BOOKMARK_VIEW_MODE_GRID
+            and not self.is_preview
+        )
 
     @staticmethod
     def generate_return_url(search: BookmarkSearch, base_url: str, page: int = None):

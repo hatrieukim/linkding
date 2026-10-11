@@ -42,6 +42,7 @@ urlpatterns = [
     ),
     path("bookmarks/new", bookmarks_views.new, name="bookmarks.new"),
     path("bookmarks/close", bookmarks_views.close, name="bookmarks.close"),
+    path("bookmarks/view-mode", bookmarks_views.view_mode, name="bookmarks.view_mode"),
     path(
         "bookmarks/<int:bookmark_id>/edit", bookmarks_views.edit, name="bookmarks.edit"
     ),

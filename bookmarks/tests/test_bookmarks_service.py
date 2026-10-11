@@ -323,6 +323,41 @@ class BookmarkServiceTestCase(TestCase, BookmarkFactoryMixin):
 
             mock_load_favicon.assert_called_once_with(self.user, bookmark)
 
+    def test_create_should_check_embeddable(self):
+        with patch.object(tasks, "check_embeddable") as mock_check_embeddable:
+            bookmark_data = Bookmark(url="https://example.com", title="Title")
+            created_bookmark = create_bookmark(bookmark_data, "", self.user)
+
+            mock_check_embeddable.assert_called_once_with(self.user, created_bookmark)
+
+    def test_update_should_reset_embeddable_when_url_changes(self):
+        with patch.object(tasks, "check_embeddable") as mock_check_embeddable:
+            bookmark = self.setup_bookmark(embeddable=True)
+            bookmark.url = "https://example.com/updated"
+            update_bookmark(bookmark, "", self.user)
+
+            bookmark.refresh_from_db()
+            self.assertIsNone(bookmark.embeddable)
+            mock_check_embeddable.assert_called_once_with(self.user, bookmark)
+
+    def test_update_should_keep_embeddable_when_url_is_unchanged(self):
+        with patch.object(tasks, "check_embeddable") as mock_check_embeddable:
+            bookmark = self.setup_bookmark(embeddable=True)
+            bookmark.title = "updated title"
+            update_bookmark(bookmark, "", self.user)
+
+            bookmark.refresh_from_db()
+            self.assertTrue(bookmark.embeddable)
+            mock_check_embeddable.assert_not_called()
+
+    def test_update_should_check_embeddable_if_not_checked_yet(self):
+        with patch.object(tasks, "check_embeddable") as mock_check_embeddable:
+            bookmark = self.setup_bookmark()
+            bookmark.title = "updated title"
+            update_bookmark(bookmark, "", self.user)
+
+            mock_check_embeddable.assert_called_once_with(self.user, bookmark)
+
     def test_update_should_not_create_html_snapshot(self):
         with patch.object(tasks, "create_html_snapshot") as mock_create_html_snapshot:
             bookmark = self.setup_bookmark()

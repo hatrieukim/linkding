@@ -58,6 +58,12 @@ class BookmarkTasksTestCase(TestCase, BookmarkFactoryMixin):
         self.mock_load_preview_image = self.mock_load_preview_image_patcher.start()
         self.mock_load_preview_image.return_value = "preview_image.png"
 
+        self.mock_check_embeddable_patcher = mock.patch(
+            "bookmarks.services.embed_checker.check_embeddable"
+        )
+        self.mock_check_embeddable = self.mock_check_embeddable_patcher.start()
+        self.mock_check_embeddable.return_value = True
+
         user = self.get_or_create_test_user()
         user.profile.web_archive_integration = (
             UserProfile.WEB_ARCHIVE_INTEGRATION_ENABLED
@@ -71,6 +77,7 @@ class BookmarkTasksTestCase(TestCase, BookmarkFactoryMixin):
         self.mock_load_favicon_patcher.stop()
         self.mock_assets_create_snapshot_patcher.stop()
         self.mock_load_preview_image_patcher.stop()
+        self.mock_check_embeddable_patcher.stop()
         huey.storage.flush_results()
         huey.immediate = False
 
@@ -173,6 +180,77 @@ class BookmarkTasksTestCase(TestCase, BookmarkFactoryMixin):
         tasks.create_web_archive_snapshot(
             self.get_or_create_test_user(), bookmark, False
         )
+
+        self.assertEqual(self.executed_count(), 0)
+
+    def enable_grid_view(self):
+        self.user.profile.bookmark_view_mode = UserProfile.BOOKMARK_VIEW_MODE_GRID
+        self.user.profile.save()
+
+    def test_check_embeddable_should_update_embeddable(self):
+        self.enable_grid_view()
+        bookmark = self.setup_bookmark()
+
+        tasks.check_embeddable(self.user, bookmark)
+        bookmark.refresh_from_db()
+
+        self.assertEqual(self.executed_count(), 1)
+        self.mock_check_embeddable.assert_called_once_with(bookmark.url)
+        self.assertTrue(bookmark.embeddable)
+
+    def test_check_embeddable_should_store_false_and_unknown(self):
+        self.enable_grid_view()
+        bookmark = self.setup_bookmark(embeddable=True)
+
+        self.mock_check_embeddable.return_value = False
+        tasks.check_embeddable(self.user, bookmark)
+        bookmark.refresh_from_db()
+        self.assertIs(bookmark.embeddable, False)
+
+        self.mock_check_embeddable.return_value = None
+        tasks.check_embeddable(self.user, bookmark)
+        bookmark.refresh_from_db()
+        self.assertIsNone(bookmark.embeddable)
+
+    def test_check_embeddable_should_handle_missing_bookmark(self):
+        tasks._check_embeddable_task(123)
+
+        self.mock_check_embeddable.assert_not_called()
+
+    def test_check_embeddable_should_not_run_in_list_view(self):
+        bookmark = self.setup_bookmark()
+
+        tasks.check_embeddable(self.user, bookmark)
+
+        self.assertEqual(self.executed_count(), 0)
+        self.mock_check_embeddable.assert_not_called()
+
+    @override_settings(LD_DISABLE_BACKGROUND_TASKS=True)
+    def test_check_embeddable_should_not_run_when_background_tasks_are_disabled(self):
+        self.enable_grid_view()
+        bookmark = self.setup_bookmark()
+
+        tasks.check_embeddable(self.user, bookmark)
+
+        self.assertEqual(self.executed_count(), 0)
+        self.mock_check_embeddable.assert_not_called()
+
+    def test_schedule_bookmarks_without_embed_check_should_only_check_unchecked(self):
+        self.enable_grid_view()
+        unchecked = self.setup_bookmark()
+        self.setup_bookmark(embeddable=True)
+        self.setup_bookmark(embeddable=False)
+        other_user = self.setup_user()
+        self.setup_bookmark(user=other_user)
+
+        tasks.schedule_bookmarks_without_embed_check(self.user)
+
+        self.mock_check_embeddable.assert_called_once_with(unchecked.url)
+
+    def test_schedule_bookmarks_without_embed_check_should_not_run_in_list_view(self):
+        self.setup_bookmark()
+
+        tasks.schedule_bookmarks_without_embed_check(self.user)
 
         self.assertEqual(self.executed_count(), 0)
 
