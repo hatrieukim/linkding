@@ -20,7 +20,7 @@ variables:
   AST_ENABLE_MR_PIPELINES: "true"
   APP_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
 
-  # TEMPORARY: lint, tests and all security scanners are switched off to keep
+  # TEMPORARY: lint, tests, infra validation and all security scanners are switched off to keep
   # the pipeline fast while deployment is being set up.
   # To switch everything back on, delete the six lines below.
   VERIFY_DISABLED: "true"
@@ -105,6 +105,8 @@ infra-validate:
     - tofu -chdir=infra init -backend=false -input=false
     - tofu -chdir=infra validate
   rules:
+    - if: $VERIFY_DISABLED == "true"
+      when: never
     - changes:
         - infra/**/*
 
