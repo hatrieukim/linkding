@@ -48,3 +48,34 @@ variable "budget_currency" {
   type        = string
   default     = "VND"
 }
+
+variable "enable_registration" {
+  description = "Let visitors create their own account, verified by an e-mail code. Needs the two SMTP secrets below."
+  type        = bool
+  default     = true
+}
+
+variable "smtp_host" {
+  description = "SMTP server that sends verification codes."
+  type        = string
+  default     = "smtp.gmail.com"
+}
+
+variable "smtp_port" {
+  description = "SMTP port. 587 uses STARTTLS."
+  type        = number
+  default     = 587
+}
+
+variable "smtp_user_secret" {
+  description = "Name of the Secret Manager secret holding the SMTP user name, which is also the sender address. Created by hand, see README."
+  type        = string
+  default     = "linkding-smtp-user"
+}
+
+variable "smtp_password_secret" {
+  description = "Name of the Secret Manager secret holding the SMTP password. Created by hand, see README."
+  type        = string
+  default     = "linkding-smtp-password"
+}
+
