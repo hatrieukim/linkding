@@ -1,13 +1,13 @@
 <!--
-Describe what you need in plain language: what should change, and why.
-A bug report should say what you did, what happened and what you expected.
+Viết yêu cầu bằng lời thường: bạn muốn thay đổi gì, và vì sao.
+Nếu là báo lỗi: bạn đã làm gì, chuyện gì xảy ra, bạn mong đợi điều gì.
 -->
 
 
 
 <!--
-The line below hands this issue to the Duo Developer agent. It plans the work
-on this issue, implements it, opens a merge request and merges it when the
-pipeline passes. Delete the line to keep the issue for a human.
+Dòng dưới đây giao issue này cho agent Duo Developer. Agent sẽ viết phân tích
+và kế hoạch lên issue, code, mở merge request và để nó tự merge khi pipeline
+xanh. Xoá dòng này nếu bạn muốn giữ issue cho người làm.
 -->
 /assign @duo-developer-gitlab-ai-hackathon

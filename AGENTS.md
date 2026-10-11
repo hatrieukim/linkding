@@ -4,6 +4,39 @@ Instructions for AI agents working in this repository. The first half describes
 the project. The second half is the workflow an agent follows when it is given
 an issue.
 
+## Language
+
+Everything you write for a person to read is in **Vietnamese**: comments on
+issues and merge requests, merge request descriptions, questions, reports.
+This applies to every agent and subagent working in this repository. Issues
+are written in Vietnamese too.
+
+Git and code stay in English, because this is a fork of an English project:
+branch names, commit messages, merge request titles, identifiers, code
+comments and documentation under `docs/`.
+
+Keep technical terms that have no natural Vietnamese form as they are, for
+example merge request, pipeline, commit, endpoint.
+
+### The simple version comes first
+
+The maintainer reads the top of every comment and often nothing else. So every
+plan, report and merge request description opens with a block titled
+`**Bản đơn giản, dễ hiểu**`, followed by a horizontal rule `---`, followed by
+the detailed part.
+
+Rules for the simple version:
+
+- Prose, not a list. Short sentences.
+- Between 100 and 200 words.
+- Technical terms are allowed when they are needed. Do not name files or
+  functions.
+- It answers three questions, in this order: what the maintainer wants, what
+  you will do or did, and what they will see that is different once it is done.
+
+The detailed part below the rule is written in your normal style, with
+headings, lists, file names and code where they help.
+
 ## Project
 
 linkding is a self-hosted bookmark manager built with Django. This repository
@@ -43,8 +76,9 @@ that uv does not try to download anything.
 | Whole suite, about 5 minutes | `uv run --no-sync pytest -n auto` |
 | New migration after a model change | `uv run --no-sync python manage.py makemigrations` |
 
-Run the test files that cover your change, not the whole suite. The pipeline
-runs everything.
+Run the test files that cover your change, not the whole suite. Do not count
+on the pipeline to catch what you did not test: its test job may be switched
+off.
 
 If a command fails because the environment is missing something, say exactly
 what failed. Do not report a check as passed unless you ran it and saw it pass.
@@ -78,23 +112,41 @@ less or more than the literal text.
 
 If the issue cannot be implemented as written, because it is ambiguous in a way
 that changes the design, contradicts existing behaviour, or asks for something
-unsafe, post one comment that explains the problem and asks a specific
-question. Then stop. Do not guess.
+unsafe, post one comment in Vietnamese that explains the problem and asks a
+specific question. Then stop. Do not guess.
 
 ### 2. Plan, on the issue
 
-Before you change any file, post one comment on the issue with exactly these
-three sections:
+Before you change any file, post one comment on the issue in exactly this
+shape:
 
-- `## Analysis`: what is being asked, where the relevant code is, and anything
+```markdown
+## Phân tích issue #<number>
+
+**Bản đơn giản, dễ hiểu**
+
+<100 to 200 words of prose>
+
+---
+
+### Phân tích
+
+### Kế hoạch thực hiện
+
+### Tiêu chí nghiệm thu
+```
+
+- `Phân tích`: what is being asked, where the relevant code is, and anything
   surprising you found.
-- `## Implementation plan`: a short numbered list of the changes you will make,
+- `Kế hoạch thực hiện`: a short numbered list of the changes you will make,
   naming files.
-- `## Acceptance criteria`: a checklist. Each item is a fact that someone can
+- `Tiêu chí nghiệm thu`: a checklist. Each item is a fact that someone can
   check without reading the code: an HTTP request and its response, something
   visible in the UI, a command and its output. Include at least one item that
   can be checked against the deployed application. Do not list process steps
   such as "merge request is opened".
+
+Then continue with the next step. Do not wait for approval.
 
 ### 3. Implement
 
@@ -110,13 +162,28 @@ check fails, fix the code, not the check.
 ### 5. Open the merge request
 
 Push the branch and open a merge request to the default branch. It is **ready,
-not a draft**. The description contains:
+not a draft**. The title is in English. The description is in this shape:
 
-- `Closes #<issue number>`
-- a short summary of the change
-- the acceptance criteria as a checklist, ticked where a test or check you ran
-  proves the item
-- the commands you ran and their real results
+```markdown
+Closes #<number>
+
+**Bản đơn giản, dễ hiểu**
+
+<100 to 200 words of prose>
+
+---
+
+### Thay đổi
+
+### Tiêu chí nghiệm thu
+
+### Kiểm tra đã chạy
+```
+
+- `Thay đổi`: what changed and why, by file.
+- `Tiêu chí nghiệm thu`: the checklist from the plan, ticked where a test or
+  check you ran proves the item.
+- `Kiểm tra đã chạy`: the commands you ran and their real results.
 
 ### 6. Enable auto-merge
 
@@ -129,7 +196,8 @@ it and you never push to the default branch.
    head commit:
    `glab api --method POST "projects/:id/merge_requests/<iid>/notes" -f body="/merge" -f merge_request_diff_head_sha="$(git rev-parse HEAD)"`
 3. Check that it took effect: `glab mr view <iid> --output json` shows
-   `"merge_when_pipeline_succeeds": true`.
+   `"merge_when_pipeline_succeeds": true`, or `"state": "merged"` if the
+   pipeline had already passed.
 4. If it did not, use a push option instead:
    `git commit --allow-empty -m "Enable auto-merge"` and then
    `git push -o merge_request.auto_merge`. Check again.
@@ -147,15 +215,36 @@ the second fix, stop, and say so in the final comment.
 
 ### 8. Report, on the issue
 
-Post one final comment on the issue:
+Post one final comment on the issue in this shape:
 
-- what changed, in two or three sentences
-- the acceptance criteria checklist, with each item marked as verified by a
-  test, verified by hand, or not verified
-- the checks you ran and their real results
-- the merge request link and its state: merged, waiting for its pipeline, or
-  blocked, and why
-- anything the maintainer needs to do or decide
+```markdown
+## Kết quả issue #<number>
+
+**Bản đơn giản, dễ hiểu**
+
+<100 to 200 words of prose>
+
+---
+
+### Thay đổi
+
+### Tiêu chí nghiệm thu
+
+### Kiểm tra đã chạy
+
+### Merge request
+
+### Việc cần bạn làm
+```
+
+- `Thay đổi`: what changed, in two or three sentences.
+- `Tiêu chí nghiệm thu`: the checklist, each item marked as verified by a test,
+  verified by hand, or not verified.
+- `Kiểm tra đã chạy`: the checks you ran and their real results.
+- `Merge request`: the link and its state: merged, waiting for its pipeline,
+  or blocked, and why.
+- `Việc cần bạn làm`: anything the maintainer has to do or decide. Write
+  `Không có.` if there is nothing.
 
 After the merge, the pipeline on the default branch deploys the change to
 staging at https://linkding-staging-248896301327.asia-southeast1.run.app.

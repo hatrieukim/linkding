@@ -3,10 +3,11 @@
 # https://docs.gitlab.com/user/duo_agent_platform/flows/execution/
 
 # Runs before the agent starts and outside its network sandbox, so this is the
-# place to download dependencies. The default image has Python 3.12 only, so uv
+# place to download dependencies. The default image has Python 3.12 (its plain
+# `python3` is 3.9 without pip), so uv
 # also fetches the Python version the project needs.
 setup_script:
-  - python3 -m pip install --quiet --root-user-action=ignore uv==0.8.13
+  - python3.12 -m pip install --quiet --root-user-action=ignore uv==0.8.13
   # uwsgi only serves the app in the container image. It has no prebuilt wheel
   # and tests do not need it.
   - uv sync --frozen --no-install-package uwsgi
