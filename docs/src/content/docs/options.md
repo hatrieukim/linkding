@@ -260,6 +260,14 @@ Values: `Integer` as seconds | Default = `1209600`
 
 Set the lifetime of the session cookie, in seconds. This value determines how long a browser will stay logged in to the web interface. The default value is 2 weeks.
 
+### `LD_SECRET_KEY`
+
+Values: `String` | Default = None
+
+The secret key used to sign sessions. If it is not set, linkding reads the key from `data/secretkey.txt`, which is generated on first start.
+That file is lost when the container has no persistent storage, for example on Google Cloud Run, which logs everyone out each time the application restarts.
+Set this option to a long random string to keep users logged in across restarts. Keep the value private, and changing it logs everyone out.
+
 ### `LD_CORS_ALLOWED_ORIGINS`
 
 Values: `String` | Default = None

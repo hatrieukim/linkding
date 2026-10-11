@@ -14,12 +14,16 @@ from .base import *
 # Turn of debug mode
 DEBUG = False
 
-# Try read secret key from file
-try:
-    with open(os.path.join(BASE_DIR, "data", "secretkey.txt")) as f:
-        SECRET_KEY = f.read().strip()
-except:
-    SECRET_KEY = get_random_secret_key()
+# Read secret key from the environment, which keeps sessions valid across
+# restarts on hosts without persistent storage. If not set, try to read it from
+# a file, and finally fall back to a random key.
+SECRET_KEY = os.getenv("LD_SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    try:
+        with open(os.path.join(BASE_DIR, "data", "secretkey.txt")) as f:
+            SECRET_KEY = f.read().strip()
+    except:
+        SECRET_KEY = get_random_secret_key()
 
 # Set ALLOWED_HOSTS
 # By default look in the HOST_NAME environment variable, if that is not set then allow all hosts
