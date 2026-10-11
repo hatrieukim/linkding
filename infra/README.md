@@ -7,7 +7,7 @@ Everything linkding needs on Google Cloud, described with [OpenTofu](https://ope
 | `main.tf` | Enabled APIs, shared names |
 | `registry.tf` | Artifact Registry repository for images |
 | `database.tf` | One Cloud SQL PostgreSQL instance with a database and user per environment |
-| `secrets.tf` | Generated database and admin passwords in Secret Manager |
+| `secrets.tf` | Generated database passwords, admin passwords and session keys in Secret Manager |
 | `run.tf` | Two Cloud Run services, `linkding-staging` and `linkding-production`, and their runtime identities |
 | `gitlab.tf` | Workload Identity Federation so GitLab CI/CD can deploy without a stored key |
 | `budget.tf` | Optional monthly budget alert |
@@ -49,6 +49,5 @@ gcloud secrets versions access latest --secret linkding-staging-superuser-passwo
 ## Known limits
 
 - Files that linkding stores on disk (favicons, previews, uploaded assets) do not survive a new revision. Bookmarks are in PostgreSQL and do.
-- linkding generates its session key on startup, so users are logged out when a new instance starts.
 - Background tasks are disabled, because Cloud Run only provides CPU while a request is being served.
 - Both database users live on the same instance. They are separated by credentials, not by network.
