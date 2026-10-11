@@ -1,0 +1,35 @@
+# Slack app for the bot. Create it at https://api.slack.com/apps
+# with "Create New App" > "From a manifest".
+#
+# The two URLs point at the Cloud Run service created by infra/bot.tf. Change
+# the project number and region if yours differ.
+display_information:
+  name: linkding Duo
+  description: Bàn tính năng với GitLab Duo, tạo issue và theo dõi tiến độ
+  background_color: "#2b2d42"
+features:
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+  bot_user:
+    display_name: linkding-duo
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - chat:write
+      - im:history
+settings:
+  event_subscriptions:
+    request_url: https://linkding-bot-248896301327.asia-southeast1.run.app/slack/events
+    bot_events:
+      - app_mention
+      - message.im
+  interactivity:
+    is_enabled: true
+    request_url: https://linkding-bot-248896301327.asia-southeast1.run.app/slack/interactions
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

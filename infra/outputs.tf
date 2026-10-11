@@ -17,3 +17,8 @@ output "deployer_service_account" {
   description = "Service account that GitLab CI/CD jobs impersonate."
   value       = google_service_account.deployer.email
 }
+
+output "bot_url" {
+  description = "URL of the Slack bot. Slack sends events to /slack/events and button clicks to /slack/interactions."
+  value       = local.bot_url
+}

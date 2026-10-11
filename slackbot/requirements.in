@@ -1,0 +1,6 @@
+flask
+gunicorn
+slack_sdk
+requests
+google-cloud-firestore
+google-cloud-tasks

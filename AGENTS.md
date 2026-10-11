@@ -53,6 +53,7 @@ agent-driven delivery around the upstream application.
 | `docs/` | User documentation. Options are documented in `docs/src/content/docs/options.md` |
 | `docker/`, `bootstrap.sh`, `uwsgi.ini` | Container image and startup |
 | `infra/` | Google Cloud infrastructure as OpenTofu code. Applied by a maintainer, never by a pipeline or an agent |
+| `slackbot/` | A separate small service, not part of the app: the Slack bot the maintainer uses to plan issues and follow their progress. It has its own dependencies, tests and README |
 | `.gitlab-ci.yml` | The pipeline |
 
 Python 3.13. Dependencies are managed with uv in `pyproject.toml` and `uv.lock`.
@@ -94,8 +95,8 @@ what failed. Do not report a check as passed unless you ran it and saw it pass.
 - A new configuration option is an environment variable named `LD_...`, read in
   `bookmarks/settings/base.py` or `prod.py`, listed in `.env.sample` and
   documented in `docs/src/content/docs/options.md`.
-- Do not change `infra/`, `.gitlab-ci.yml`, `AGENTS.md` or anything under
-  `.gitlab/` or `.agents/` unless the issue explicitly asks for it.
+- Do not change `infra/`, `slackbot/`, `.gitlab-ci.yml`, `AGENTS.md` or anything
+  under `.gitlab/` or `.agents/` unless the issue explicitly asks for it.
 - Never commit secrets, and never print the value of a token or password.
 - Your file tools cannot edit `.env.sample`. If a change needs a new line
   there, say so under `Việc cần bạn làm` in the final report with the exact
