@@ -97,6 +97,9 @@ what failed. Do not report a check as passed unless you ran it and saw it pass.
 - Do not change `infra/`, `.gitlab-ci.yml`, `AGENTS.md` or anything under
   `.gitlab/` or `.agents/` unless the issue explicitly asks for it.
 - Never commit secrets, and never print the value of a token or password.
+- Your file tools cannot edit `.env.sample`. If a change needs a new line
+  there, say so under `Việc cần bạn làm` in the final report with the exact
+  text to add.
 
 ## Delivery workflow
 
@@ -192,17 +195,15 @@ it and you never push to the default branch.
 
 1. Wait until the merge request has a pipeline: `glab mr view <iid> --output json`
    shows a `head_pipeline`.
-2. Ask GitLab to merge when the pipeline succeeds, with a quick action on the
-   head commit:
-   `glab api --method POST "projects/:id/merge_requests/<iid>/notes" -f body="/merge" -f merge_request_diff_head_sha="$(git rev-parse HEAD)"`
-3. Check that it took effect: `glab mr view <iid> --output json` shows
-   `"merge_when_pipeline_succeeds": true`, or `"state": "merged"` if the
-   pipeline had already passed.
-4. If it did not, use a push option instead:
+2. Push one more commit with a push option that asks GitLab to merge when the
+   pipeline succeeds:
    `git commit --allow-empty -m "Enable auto-merge"` and then
-   `git push -o merge_request.auto_merge`. Check again.
+   `git push -o merge_request.auto_merge`.
+3. Check that it took effect: `glab mr view <iid> --output json` shows
+   `"merge_when_pipeline_succeeds": true`.
 
-`glab mr merge` does not work with your credentials. Do not try it.
+This is the only method that works with your credentials. `glab mr merge` and
+the `/merge` quick action are both rejected with a 403. Do not try them.
 
 ### 7. See it through
 

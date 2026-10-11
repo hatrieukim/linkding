@@ -33,6 +33,14 @@ resource "google_secret_manager_secret_iam_member" "runtime_superuser_password" 
   member    = google_service_account.runtime[each.key].member
 }
 
+resource "google_secret_manager_secret_iam_member" "runtime_secret_key" {
+  for_each = local.environments
+
+  secret_id = google_secret_manager_secret.secret_key[each.key].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = google_service_account.runtime[each.key].member
+}
+
 resource "google_cloud_run_v2_service" "app" {
   for_each = local.environments
 
@@ -111,6 +119,15 @@ resource "google_cloud_run_v2_service" "app" {
           }
         }
       }
+      env {
+        name = "LD_SECRET_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.secret_key[each.key].secret_id
+            version = "latest"
+          }
+        }
+      }
       # Cloud Run terminates HTTPS, so the app sees plain HTTP and would reject
       # form posts unless its public origin is trusted explicitly.
       env {
@@ -166,6 +183,8 @@ resource "google_cloud_run_v2_service" "app" {
     google_project_iam_member.runtime_sql,
     google_secret_manager_secret_iam_member.runtime_db_password,
     google_secret_manager_secret_iam_member.runtime_superuser_password,
+    google_secret_manager_secret_iam_member.runtime_secret_key,
+    google_secret_manager_secret_version.secret_key,
     google_secret_manager_secret_version.db_password,
     google_secret_manager_secret_version.superuser_password,
     google_sql_user.app,
