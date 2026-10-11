@@ -147,7 +147,12 @@ def slack_interactions():
     kind = actions[0].get("action_id")
     message = payload.get("message", {})
     container = payload.get("container", {})
-    if payload.get("type") != "block_actions" or kind not in ("draft", "create", "continue"):
+    if payload.get("type") != "block_actions" or kind not in (
+        "draft",
+        "create",
+        "create_private",
+        "continue",
+    ):
         return "", 200
     tasks.enqueue(
         {

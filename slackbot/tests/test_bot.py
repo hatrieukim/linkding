@@ -149,6 +149,43 @@ def test_draft_then_create_makes_one_issue_and_starts_tracking(make_bot):
     assert [track["iid"] for track in bot.store.active_tracks()] == [7]
 
 
+def test_a_draft_refused_as_spam_can_be_created_as_a_private_issue(make_bot):
+    bot = make_bot(["Rõ rồi.", "TITLE: Xem trang bằng iframe\n\n## Mong muốn\nCó lưới."])
+    bot.gitlab.spam_filter = True
+    bot.run({**TASK, "kind": "message", "text": "thêm kiểu xem lưới"})
+    bot.run({**TASK, "kind": "draft"})
+    draft = bot.slack.messages[-1]
+
+    bot.run({**TASK, "kind": "create", "message_ts": draft["ts"]})
+    assert bot.gitlab.created == [] and bot.store.active_tracks() == []
+    assert "GitLab từ chối" in draft["text"]
+    assert [b["action_id"] for b in draft["buttons"]] == ["create_private", "continue"]
+    assert "bộ lọc spam" in bot.slack.texts()[-1].lower()
+
+    bot.run({**TASK, "kind": "create_private", "message_ts": draft["ts"]})
+    assert [issue["confidential"] for issue in bot.gitlab.created] == [True]
+    assert "issue riêng tư #7" in bot.slack.texts()[-1]
+    assert [track["iid"] for track in bot.store.active_tracks()] == [7]
+
+
+def test_typing_tao_rieng_tu_creates_the_private_issue_without_a_public_attempt(make_bot):
+    bot = make_bot(["Rõ rồi.", "TITLE: A\n\nB"])
+    bot.gitlab.spam_filter = True
+    bot.run({**TASK, "kind": "message", "text": "thêm kiểu xem lưới"})
+    bot.run({**TASK, "kind": "draft"})
+    bot.run({**TASK, "kind": "message", "text": "Tạo riêng tư"})
+    assert [issue["confidential"] for issue in bot.gitlab.created] == [True]
+    assert "GitLab từ chối" not in " ".join(bot.slack.texts())
+
+
+def test_an_issue_created_by_hand_can_be_followed_from_a_thread(make_bot):
+    bot = make_bot()
+    bot.run({**TASK, "kind": "message", "text": "theo dõi #12"})
+    assert bot.duo.calls == []
+    assert [track["iid"] for track in bot.store.active_tracks()] == [12]
+    assert "issue #12" in bot.slack.texts()[-1]
+
+
 def test_typing_chot_asks_for_the_draft(make_bot):
     bot = make_bot(["Rõ rồi.", "TITLE: A\n\nB"])
     bot.run({**TASK, "kind": "message", "text": "thêm nút"})

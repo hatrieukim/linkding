@@ -1,6 +1,7 @@
 """Stand-ins for Slack, Duo and GitLab that record what the bot did."""
 
 from bot.duo import DuoError, DuoReply
+from bot.gitlab import SpamRejected
 
 
 class FakeSlack:
@@ -43,6 +44,7 @@ class FakeDuo:
 class FakeGitLab:
     def __init__(self):
         self.created = []
+        self.spam_filter = False
         self.issue_state = "opened"
         self.issue_notes = []
         self.merge_requests = {}
@@ -52,8 +54,10 @@ class FakeGitLab:
     def project(self):
         return {"web_url": "https://gitlab.example/group/app"}
 
-    def create_issue(self, title, description):
-        self.created.append({"title": title, "description": description})
+    def create_issue(self, title, description, confidential=False):
+        if self.spam_filter and not confidential:
+            raise SpamRejected()
+        self.created.append({"title": title, "description": description, "confidential": confidential})
         return {"iid": 7, "web_url": "https://gitlab.example/group/app/-/issues/7"}
 
     def issue(self, iid):

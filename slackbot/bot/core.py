@@ -18,6 +18,7 @@ import re
 import time
 
 from .duo import DuoError
+from .gitlab import SpamRejected
 from .slack import button, link_references
 
 log = logging.getLogger(__name__)
@@ -68,7 +69,18 @@ ISSUE_FOOTER = "\n\n---\n_Issue này được viết từ một cuộc trao đ�
 
 UNREAD = "Các tin nhắn trước đó trong thread mà bạn chưa đọc, cũ nhất trước:\n"
 
+SPAM_REJECTED = """\
+⚠️ GitLab từ chối tạo issue này. Bộ lọc spam của GitLab nghi nội dung là spam. \
+Đây là nhận nhầm, nhưng bấm lại sẽ bị từ chối tiếp, nên đừng thử nhiều lần. Bạn có ba cách:
+
+- Bấm **Tạo dạng riêng tư**, hoặc nhắn `tạo riêng tư`. Issue riêng tư chỉ thành viên project thấy, và GitLab \
+không lọc spam với loại này.
+- Bấm **Bàn tiếp** rồi nhờ tôi viết lại bản nháp ngắn và đơn giản hơn.
+- Tự tạo issue trên web GitLab, rồi nhắn `theo dõi #<số issue>` ở thread này để tôi báo tiến độ.
+"""
+
 THINKING = "⏳ Đang đọc code và suy nghĩ…"
+FOLLOW_COMMAND = re.compile(r"^(?:theo dõi|theo doi|track)\s+#?(\d+)$", re.IGNORECASE)
 MAX_UNREAD = 20
 
 
@@ -107,6 +119,7 @@ class Bot:
             "message": self.on_message,
             "draft": self.on_draft,
             "create": self.on_create,
+            "create_private": self.on_create,
             "continue": self.on_continue,
         }.get(kind)
         if handler is None:
@@ -172,6 +185,11 @@ class Bot:
             return
         if text.lower().rstrip(".!") in ("chốt", "chot"):
             return self.on_draft(task)
+        if text.lower().rstrip(".!") in ("tạo riêng tư", "tao rieng tu"):
+            return self.on_create({**task, "kind": "create_private"})
+        follow = FOLLOW_COMMAND.match(text)
+        if follow:
+            return self.on_follow(task, int(follow.group(1)))
 
         def goal(thread: dict) -> str:
             rules = NEXT_TURN if thread.get("session_id") else FIRST_TURN
@@ -254,12 +272,51 @@ class Bot:
                 channel, thread_ts, "Không tìm thấy bản nháp. Bấm “Chốt, viết issue” lại giúp tôi."
             )
             return
+        private = task["kind"] == "create_private"
+        body = f"**{draft['title']}**\n\n{draft['description']}"
         try:
-            issue = self.gitlab.create_issue(draft["title"], draft["description"] + ISSUE_FOOTER)
+            issue = self.gitlab.create_issue(draft["title"], draft["description"] + ISSUE_FOOTER, private)
+        except SpamRejected:
+            self.store.release_lock(guard)
+            if task.get("message_ts"):
+                self.slack.update(
+                    channel,
+                    task["message_ts"],
+                    f"**Bản nháp issue (GitLab từ chối)**\n\n{body}",
+                    [
+                        button("Tạo dạng riêng tư", "create_private", "primary"),
+                        button("Bàn tiếp", "continue"),
+                    ],
+                )
+            self.slack.post(channel, thread_ts, SPAM_REJECTED)
+            return
         except Exception:
             self.store.release_lock(guard)
             raise
         iid = issue["iid"]
+        self._follow(iid, channel, thread_ts)
+        self.store.save("threads", key, {"draft": None, "issue_iid": iid})
+        if task.get("message_ts"):
+            self.slack.update(channel, task["message_ts"], f"**Issue đã tạo**\n\n{body}")
+        kind = "issue riêng tư" if private else "issue"
+        self.slack.post(
+            channel,
+            thread_ts,
+            f"✅ Đã tạo [{kind} #{iid}]({issue['web_url']}) và giao cho agent. Tiến độ sẽ hiện ở thread này.",
+        )
+
+    def on_follow(self, task: dict, iid: int) -> None:
+        """Report in this thread on an issue that was created outside the bot."""
+        channel, thread_ts = task["channel"], task["thread_ts"]
+        try:
+            self.gitlab.issue(iid)
+        except Exception:
+            self.slack.post(channel, thread_ts, f"Tôi không tìm thấy issue #{iid} trong project.")
+            return
+        self._follow(iid, channel, thread_ts)
+        self.slack.post(channel, thread_ts, f"Được. Tôi sẽ báo tiến độ của issue #{iid} ở thread này.")
+
+    def _follow(self, iid: int, channel: str, thread_ts: str) -> None:
         self.store.save(
             "tracks",
             str(iid),
@@ -272,18 +329,6 @@ class Bot:
                 "last_note_id": 0,
                 "seen": [],
             },
-        )
-        self.store.save("threads", key, {"draft": None, "issue_iid": iid})
-        if task.get("message_ts"):
-            self.slack.update(
-                channel,
-                task["message_ts"],
-                f"**Issue đã tạo**\n\n**{draft['title']}**\n\n{draft['description']}",
-            )
-        self.slack.post(
-            channel,
-            thread_ts,
-            f"✅ Đã tạo [issue #{iid}]({issue['web_url']}) và giao cho agent. Tiến độ sẽ hiện ở thread này.",
         )
 
     # ------------------------------------------------------------ progress
