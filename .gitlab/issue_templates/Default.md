@@ -1,13 +1,14 @@
 <!--
-Viết yêu cầu bằng lời thường: bạn muốn thay đổi gì, và vì sao.
-Nếu là báo lỗi: bạn đã làm gì, chuyện gì xảy ra, bạn mong đợi điều gì.
+Describe the request in plain words: what you want to change, and why.
+For a bug: what you did, what happened, and what you expected.
 -->
 
 
 
 <!--
-Dòng dưới đây giao issue này cho agent Duo Developer. Agent sẽ viết phân tích
-và kế hoạch lên issue, code, mở merge request và để nó tự merge khi pipeline
-xanh. Xoá dòng này nếu bạn muốn giữ issue cho người làm.
+The line below assigns this issue to the Duo Developer agent. The agent writes
+its analysis and plan on the issue, writes the code, opens a merge request and
+lets it merge by itself when the pipeline passes. Delete the line if you want
+to keep the issue for a person.
 -->
 /assign @duo-developer-gitlab-ai-hackathon

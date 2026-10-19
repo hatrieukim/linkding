@@ -7,18 +7,18 @@ import {
   titleFromUrl,
 } from "../utils/onboarding.js";
 
-const SAMPLE_URL = "https://vi.wikipedia.org/wiki/World_Wide_Web";
-const SAMPLE_TAGS = ["đọc-sau", "học-tập", "tham-khảo"];
+const SAMPLE_URL = "https://en.wikipedia.org/wiki/World_Wide_Web";
+const SAMPLE_TAGS = ["read-later", "learning", "reference"];
 const SAMPLE_BOOKMARKS = [
   {
-    title: "Công thức bánh mì làm tại nhà",
-    url: "https://example.com/cong-thuc-banh-mi",
-    tags: ["nấu-ăn"],
+    title: "Homemade bread recipe",
+    url: "https://example.com/bread-recipe",
+    tags: ["cooking"],
   },
   {
-    title: "Cách học lập trình cho người mới",
-    url: "https://example.com/hoc-lap-trinh",
-    tags: ["học-tập"],
+    title: "Learning to code for beginners",
+    url: "https://example.com/learn-to-code",
+    tags: ["learning"],
   },
 ];
 
@@ -195,7 +195,7 @@ class Onboarding extends HeadlessElement {
     const href = normalizeUrl(this.state.url);
     if (!href) {
       this.setState({
-        urlError: "Địa chỉ này chưa đúng. Thử dạng example.com/bai-viet nhé.",
+        urlError: "That address does not look right. Try example.com/article.",
       });
       return;
     }
@@ -260,7 +260,7 @@ class Onboarding extends HeadlessElement {
           aria-valuemin="0"
           aria-valuemax=${LAST_STEP}
           aria-valuenow=${step}
-          aria-label="Tiến độ hướng dẫn"
+          aria-label="Guide progress"
         >
           <div class="onb-progress-bar" style="width: ${progress}%"></div>
         </div>
@@ -293,7 +293,7 @@ class Onboarding extends HeadlessElement {
       return html`
         <div class="onb-footer">
           <button type="button" class="onb-link" @click=${() => this.finish()}>
-            Bỏ qua
+            Skip
           </button>
           <button
             type="button"
@@ -301,7 +301,7 @@ class Onboarding extends HeadlessElement {
             data-autofocus
             @click=${() => this.goTo(1)}
           >
-            Bắt đầu
+            Start
           </button>
         </div>
       `;
@@ -311,7 +311,7 @@ class Onboarding extends HeadlessElement {
       return html`
         <div class="onb-footer">
           <button type="button" class="onb-link" @click=${() => this.finish()}>
-            Để sau
+            Later
           </button>
           <a
             class="onb-btn onb-btn-primary"
@@ -319,7 +319,7 @@ class Onboarding extends HeadlessElement {
             data-autofocus
             @click=${(event) => this.openNewBookmark(event)}
           >
-            Thêm bookmark thật
+            Add a real bookmark
           </a>
         </div>
       `;
@@ -332,11 +332,11 @@ class Onboarding extends HeadlessElement {
           class="onb-link"
           @click=${() => this.goTo(step - 1)}
         >
-          Quay lại
+          Back
         </button>
         <div class="onb-footer-actions">
           <button type="button" class="onb-link" @click=${() => this.finish()}>
-            Bỏ qua
+            Skip
           </button>
           <button
             type="button"
@@ -344,7 +344,7 @@ class Onboarding extends HeadlessElement {
             ?disabled=${!done}
             @click=${() => this.goTo(step + 1)}
           >
-            Tiếp tục
+            Continue
           </button>
         </div>
       </div>
@@ -353,7 +353,7 @@ class Onboarding extends HeadlessElement {
 
   renderTaskHeader(index, title) {
     return html`
-      <p class="onb-eyebrow">Việc ${index} / ${TASK_COUNT}</p>
+      <p class="onb-eyebrow">Task ${index} / ${TASK_COUNT}</p>
       <h2 class="onb-title" id="onb-title">${title}</h2>
     `;
   }
@@ -384,26 +384,26 @@ class Onboarding extends HeadlessElement {
 
   renderWelcome() {
     const principles = [
-      ["Lưu nhanh", "Một đường link, một cú bấm. Không cần sắp xếp trước."],
+      ["Save fast", "One link, one click. No need to organise first."],
       [
-        "Tìm lại dễ",
-        "Gắn tag và tìm kiếm thay cho những thư mục lồng nhau.",
+        "Find it again",
+        "Tags and search instead of nested folders.",
       ],
       [
-        "Của riêng bạn",
-        "Dữ liệu thuộc về bạn. Bạn quyết định giữ riêng hay chia sẻ.",
+        "Yours alone",
+        "Your data belongs to you. You decide what to keep or share.",
       ],
     ];
 
     return html`
-      <p class="onb-eyebrow">Chào mừng bạn đến với linkding</p>
+      <p class="onb-eyebrow">Welcome to linkding</p>
       <h2 class="onb-title" id="onb-title">
-        Nơi giữ lại mọi thứ đáng nhớ bạn gặp trên mạng.
+        A place to keep everything worth remembering that you find online.
       </h2>
       <p class="onb-text">
-        Đọc được một bài hay, thấy một công cụ hữu ích, rồi vài tuần sau không
-        nhớ nó ở đâu? linkding là một ngăn kéo gọn gàng cho những đường link đó,
-        để bạn luôn tìm lại được.
+        Read a great article or found a useful tool, and a few weeks later you
+        cannot remember where it was? linkding is a tidy drawer for those links,
+        so you can always find them again.
       </p>
       <ul class="onb-principles">
         ${principles.map(
@@ -416,8 +416,8 @@ class Onboarding extends HeadlessElement {
         )}
       </ul>
       <p class="onb-hint">
-        Mất khoảng 2 phút. Bạn sẽ tự tay làm 3 việc nhỏ. Đây là khu thực hành,
-        những gì bạn làm ở đây chưa được lưu vào tài khoản.
+        It takes about 2 minutes. You will do 3 small tasks yourself. This is a
+        practice area: nothing you do here is saved to your account.
       </p>
     `;
   }
@@ -426,10 +426,10 @@ class Onboarding extends HeadlessElement {
     const { url, urlError, bookmark } = this.state;
 
     return html`
-      ${this.renderTaskHeader(1, "Lưu link đầu tiên")}
+      ${this.renderTaskHeader(1, "Save your first link")}
       <p class="onb-text">
-        Dán địa chỉ một trang web vào ô bên dưới rồi bấm Lưu. Chưa có link nào?
-        Dùng link mẫu.
+        Paste the address of a web page into the box below and press Save.
+        No link at hand? Use the sample link.
       </p>
       <form
         class="onb-row"
@@ -442,13 +442,13 @@ class Onboarding extends HeadlessElement {
           type="text"
           inputmode="url"
           autocomplete="off"
-          placeholder="example.com/bai-viet"
-          aria-label="Địa chỉ trang web"
+          placeholder="example.com/article"
+          aria-label="Web page address"
           data-autofocus
           .value=${url}
           @input=${(event) => this.setState({ url: event.target.value })}
         />
-        <button type="submit" class="onb-btn onb-btn-primary">Lưu</button>
+        <button type="submit" class="onb-btn onb-btn-primary">Save</button>
       </form>
       ${urlError ? html`<p class="onb-error" role="alert">${urlError}</p>` : nothing}
       ${!bookmark
@@ -458,15 +458,16 @@ class Onboarding extends HeadlessElement {
               class="onb-chip"
               @click=${() => this.setState({ url: SAMPLE_URL, urlError: "" })}
             >
-              Dùng link mẫu
+              Use the sample link
             </button>
           `
         : html`
-            ${this.renderSuccess("Tuyệt! Bạn vừa lưu bookmark đầu tiên.")}
+            ${this.renderSuccess("Great! You just saved your first bookmark.")}
             ${this.renderBookmarkCard(bookmark, { highlight: true })}
           `}
       <p class="onb-hint">
-        Trong app thật: bấm Add bookmark ở góc trên bên phải, dán link và lưu.
+        In the real app: press Add bookmark at the top right, paste the link
+        and save.
       </p>
     `;
   }
@@ -476,10 +477,10 @@ class Onboarding extends HeadlessElement {
     const suggestions = SAMPLE_TAGS.filter((tag) => !bookmark.tags.includes(tag));
 
     return html`
-      ${this.renderTaskHeader(2, "Gắn tag để dễ tìm")}
+      ${this.renderTaskHeader(2, "Tag it to find it")}
       <p class="onb-text">
-        Tag là nhãn ngắn giúp gom các link cùng chủ đề. Thêm một tag cho
-        bookmark vừa lưu.
+        A tag is a short label that groups links on the same topic. Add a tag to
+        the bookmark you just saved.
       </p>
       ${this.renderBookmarkCard(bookmark)}
       <form
@@ -492,13 +493,13 @@ class Onboarding extends HeadlessElement {
           class="onb-input"
           type="text"
           autocomplete="off"
-          placeholder="ví dụ: đọc-sau"
-          aria-label="Tên tag"
+          placeholder="for example: read-later"
+          aria-label="Tag name"
           data-autofocus
           .value=${tagInput}
           @input=${(event) => this.setState({ tagInput: event.target.value })}
         />
-        <button type="submit" class="onb-btn onb-btn-primary">Thêm</button>
+        <button type="submit" class="onb-btn onb-btn-primary">Add</button>
       </form>
       ${suggestions.length > 0
         ? html`
@@ -518,7 +519,7 @@ class Onboarding extends HeadlessElement {
           `
         : nothing}
       ${bookmark.tags.length > 0
-        ? this.renderSuccess("Hay quá! Một bookmark có thể có nhiều tag.")
+        ? this.renderSuccess("Nice! A bookmark can have many tags.")
         : nothing}
     `;
   }
@@ -530,17 +531,17 @@ class Onboarding extends HeadlessElement {
     const tryTag = bookmark.tags[0];
 
     return html`
-      ${this.renderTaskHeader(3, "Tìm lại trong tích tắc")}
+      ${this.renderTaskHeader(3, "Find it in a second")}
       <p class="onb-text">
-        Bây giờ thử tìm lại. Gõ vài chữ vào ô tìm kiếm, ví dụ tag bạn vừa tạo.
-        Danh sách sẽ thu hẹp ngay khi bạn gõ.
+        Now try to find it again. Type a few letters into the search box, for
+        example the tag you just created. The list narrows as you type.
       </p>
       <input
         class="onb-input"
         type="search"
         autocomplete="off"
-        placeholder="Tìm theo tiêu đề, link hoặc tag"
-        aria-label="Tìm kiếm"
+        placeholder="Search by title, link or tag"
+        aria-label="Search"
         data-autofocus
         .value=${query}
         @input=${(event) => this.setQuery(event.target.value)}
@@ -553,7 +554,7 @@ class Onboarding extends HeadlessElement {
                 class="onb-chip"
                 @click=${() => this.setQuery(tryTag)}
               >
-                Thử: ${tryTag}
+                Try: ${tryTag}
               </button>
             </div>
           `
@@ -561,35 +562,35 @@ class Onboarding extends HeadlessElement {
       <div class="onb-results" aria-live="polite">
         ${results.length > 0
           ? results.map((item) => this.renderBookmarkCard(item))
-          : html`<p class="onb-empty">Không có kết quả. Thử từ khoá khác.</p>`}
+          : html`<p class="onb-empty">No results. Try another word.</p>`}
       </div>
       ${searched
-        ? this.renderSuccess("Đúng rồi! Bạn đã tìm lại được link của mình.")
+        ? this.renderSuccess("That's it! You found your link again.")
         : nothing}
     `;
   }
 
   renderDoneStep() {
     const achievements = [
-      "Lưu một link",
-      "Gắn tag cho link",
-      "Tìm lại link bằng ô tìm kiếm",
+      "Saved a link",
+      "Tagged the link",
+      "Found the link with the search box",
     ];
 
     return html`
-      <p class="onb-eyebrow">Hoàn thành</p>
-      <h2 class="onb-title" id="onb-title">Bạn đã sẵn sàng.</h2>
+      <p class="onb-eyebrow">Done</p>
+      <h2 class="onb-title" id="onb-title">You are ready.</h2>
       <ul class="onb-achievements">
         ${achievements.map((text) => html`<li>${checkIcon}<span>${text}</span></li>`)}
       </ul>
       <p class="onb-text">
-        Bước tiếp theo rất đơn giản: lưu một link thật mà bạn đang muốn đọc sau.
-        Bạn sẽ thấy nó xuất hiện ngay trong danh sách.
+        The next step is simple: save a real link you want to read later. You
+        will see it appear in the list right away.
       </p>
       <p class="onb-hint">
-        Mẹo: cài tiện ích trình duyệt trong Settings, mục Integrations, để lưu
-        link chỉ bằng một cú bấm. Muốn xem lại hướng dẫn này, bấm Hướng dẫn trên
-        thanh menu.
+        Tip: install the browser extension from Settings, Integrations, to save
+        a link with a single click. To see this guide again, press Guide in the
+        menu bar.
       </p>
     `;
   }

@@ -71,7 +71,7 @@ def run_task(task: dict) -> None:
             bot().slack.post(
                 task["channel"],
                 task["thread_ts"],
-                "⚠️ Có lỗi khi xử lý yêu cầu này. Chi tiết nằm trong log của bot.",
+                "⚠️ Something went wrong while handling this request. The details are in the bot's log.",
             )
         except Exception:
             log.exception("could not report the failure to Slack")

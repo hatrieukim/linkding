@@ -5,7 +5,7 @@
 # the project number and region if yours differ.
 display_information:
   name: linkding Duo
-  description: Bàn tính năng với GitLab Duo, tạo issue và theo dõi tiến độ
+  description: Plan features with GitLab Duo, create issues and follow their progress
   background_color: "#2b2d42"
 features:
   app_home:

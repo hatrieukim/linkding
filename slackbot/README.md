@@ -5,8 +5,8 @@ opening GitLab.
 
 1. **Talk.** Write to the bot in Slack. It passes each message to GitLab Duo,
    which reads the code of this project and answers in the same thread.
-2. **Settle.** Press **Chốt, viết issue**. Duo writes the issue from the
-   conversation. Press **Tạo issue này** and the bot creates it on GitLab,
+2. **Settle.** Press **Settle, write the issue** (or write `settle`). Duo writes the issue from the
+   conversation. Press **Create this issue** and the bot creates it on GitLab,
    assigned to the Duo Developer agent.
 3. **Watch.** The agent works as described in [`AGENTS.md`](../AGENTS.md). The
    bot repeats what happens in the Slack thread: the plan, the merge request,
@@ -84,11 +84,11 @@ permissions only take effect after the reinstall.
 GitLab.com runs a spam filter on issues of public projects, and it sometimes
 refuses an ordinary issue. The bot then says so and offers three ways on:
 
-- **Tạo dạng riêng tư** creates the issue as confidential. Only project members
+- **Create as private** (or writing `create private`) creates the issue as confidential. Only project members
   see it, and GitLab does not run the spam filter on issues that are not public.
-- **Bàn tiếp** continues the conversation, for example to ask Duo for a shorter
+- **Keep discussing** continues the conversation, for example to ask Duo for a shorter
   and plainer draft.
-- Create the issue on the GitLab website, then write `theo dõi #<number>` in the
+- Create the issue on the GitLab website, then write `track #<number>` in the
   thread. The bot reports on that issue as if it had created it.
 
 ## Who may use it

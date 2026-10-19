@@ -24,63 +24,64 @@ from .slack import button, link_references
 log = logging.getLogger(__name__)
 
 FIRST_TURN = """\
-Bạn là trợ lý lập kế hoạch của dự án này. Bạn đang trò chuyện với maintainer \
-qua Slack để làm rõ một tính năng hoặc một lỗi, trước khi nó được viết thành issue.
+You are the planning assistant of this project. You are talking with the maintainer \
+over Slack to clarify a feature or a bug before it is written up as an issue.
 
-Luật của cuộc trò chuyện này, ưu tiên hơn AGENTS.md:
-- Chỉ đọc. Không sửa file, không chạy lệnh làm thay đổi gì, không tạo issue, \
-merge request, branch hay commit. Khi maintainer chốt, hệ thống sẽ tự tạo issue.
-- Trả lời bằng tiếng Việt, văn xuôi, câu ngắn, tối đa khoảng 150 chữ. Không cần \
-khối "Bản đơn giản, dễ hiểu".
-- Đọc code khi cần, để câu trả lời đúng với hiện trạng của app. Không nêu tên \
-file hay hàm, trừ khi được hỏi.
-- Nếu còn điểm mơ hồ làm thay đổi cách làm thì hỏi lại. Mỗi lượt hỏi tối đa hai \
-câu, mỗi câu kèm lựa chọn bạn đề xuất.
-- Khi yêu cầu đã rõ, tóm tắt trong vài câu những gì sẽ được đưa vào issue, rồi \
-nhắc maintainer bấm nút "Chốt, viết issue".
+Rules for this conversation, which take priority over AGENTS.md:
+- Read only. Do not edit files, do not run commands that change anything, do not create \
+issues, merge requests, branches or commits. When the maintainer settles, the system creates the issue.
+- Answer in English, in prose, with short sentences, at most about 150 words. The \
+"Simple version" block is not needed.
+- Read the code when needed, so that the answer matches the current state of the app. Do not \
+name files or functions unless asked.
+- If something is still unclear in a way that changes the approach, ask. At most two \
+questions per turn, each with the option you recommend.
+- Once the request is clear, summarise in a few sentences what will go into the issue, then \
+remind the maintainer to press the "Settle, write the issue" button.
 
-Tin nhắn của maintainer:
+The maintainer's message:
 """
 
-NEXT_TURN = "Tin nhắn tiếp theo của maintainer (vẫn theo luật cũ: chỉ đọc, tiếng Việt, ngắn):\n"
+NEXT_TURN = "The maintainer's next message (same rules as before: read only, English, short):\n"
 
 DRAFT_TURN = """\
-Maintainer đã chốt. Dựa trên toàn bộ cuộc trò chuyện, viết issue cuối cùng. \
-Vẫn chỉ đọc, không tạo gì trên GitLab.
+The maintainer has settled. Based on the whole conversation, write the final issue. \
+Still read only, do not create anything on GitLab.
 
-In ra đúng định dạng dưới đây và không thêm gì khác. Bỏ mục nào không có nội dung.
+Print exactly the format below and nothing else. Leave out any section that has no content.
 
-TITLE: <tiêu đề tiếng Việt, tối đa 80 ký tự>
+TITLE: <title in English, at most 80 characters>
 
-## Bối cảnh
-<vì sao cần thay đổi này>
+## Background
+<why this change is needed>
 
-## Mong muốn
-<người dùng sẽ thấy gì, làm được gì>
+## Desired outcome
+<what the user will see and be able to do>
 
-## Ngoài phạm vi
-<những gì đã thống nhất là không làm>
+## Out of scope
+<what was agreed not to do>
 
-## Ghi chú
-<quyết định và ràng buộc đã thống nhất trong cuộc trò chuyện>
+## Notes
+<decisions and constraints agreed in the conversation>
 """
 
-ISSUE_FOOTER = "\n\n---\n_Issue này được viết từ một cuộc trao đổi trên Slack._"
+ISSUE_FOOTER = "\n\n---\n_This issue was written from a conversation in Slack._"
 
-UNREAD = "Các tin nhắn trước đó trong thread mà bạn chưa đọc, cũ nhất trước:\n"
+UNREAD = "Earlier messages in the thread that you have not read yet, oldest first:\n"
 
 SPAM_REJECTED = """\
-⚠️ GitLab từ chối tạo issue này. Bộ lọc spam của GitLab nghi nội dung là spam. \
-Đây là nhận nhầm, nhưng bấm lại sẽ bị từ chối tiếp, nên đừng thử nhiều lần. Bạn có ba cách:
+⚠️ GitLab refused to create this issue. Its spam filter suspects the content is spam. \
+This is a false positive, but pressing again will be refused again, so do not retry. You have three options:
 
-- Bấm **Tạo dạng riêng tư**, hoặc nhắn `tạo riêng tư`. Issue riêng tư chỉ thành viên project thấy, và GitLab \
-không lọc spam với loại này.
-- Bấm **Bàn tiếp** rồi nhờ tôi viết lại bản nháp ngắn và đơn giản hơn.
-- Tự tạo issue trên web GitLab, rồi nhắn `theo dõi #<số issue>` ở thread này để tôi báo tiến độ.
+- Press **Create as private**, or write `create private`. A private issue is visible only to project \
+members, and GitLab does not run the spam filter on those.
+- Press **Keep discussing** and ask me for a shorter, plainer draft.
+- Create the issue yourself on the GitLab website, then write `track #<issue number>` in this thread \
+and I will report its progress.
 """
 
-THINKING = "⏳ Đang đọc code và suy nghĩ…"
-FOLLOW_COMMAND = re.compile(r"^(?:theo dõi|theo doi|track)\s+#?(\d+)$", re.IGNORECASE)
+THINKING = "⏳ Reading the code and thinking…"
+FOLLOW_COMMAND = re.compile(r"^(?:track|follow)\s+#?(\d+)$", re.IGNORECASE)
 MAX_UNREAD = 20
 
 
@@ -140,7 +141,7 @@ class Bot:
         self.slack.post(
             task["channel"],
             task["thread_ts"],
-            "Bot này chỉ nhận yêu cầu từ maintainer của dự án.",
+            "This bot only takes requests from the project maintainer.",
         )
         return False
 
@@ -158,7 +159,7 @@ class Bot:
             self.slack.post(
                 channel,
                 thread_ts,
-                "Tôi đang trả lời tin trước. Tin này tôi sẽ đọc cùng với tin kế tiếp của bạn.",
+                "I am still answering your previous message. I will read this one together with your next.",
             )
             return None, None
         placeholder = self.slack.post(channel, thread_ts, waiting)
@@ -173,7 +174,7 @@ class Bot:
             self.slack.update(
                 channel,
                 placeholder,
-                "⚠️ Duo không trả lời được lần này. Bạn nhắn lại giúp tôi.",
+                "⚠️ Duo could not answer this time. Please send your message again.",
             )
             return None, placeholder
         finally:
@@ -183,9 +184,9 @@ class Bot:
         text = task.get("text", "").strip()
         if not text:
             return
-        if text.lower().rstrip(".!") in ("chốt", "chot"):
+        if text.lower().rstrip(".!") in ("settle", "draft"):
             return self.on_draft(task)
-        if text.lower().rstrip(".!") in ("tạo riêng tư", "tao rieng tu"):
+        if text.lower().rstrip(".!") in ("create private", "private"):
             return self.on_create({**task, "kind": "create_private"})
         follow = FOLLOW_COMMAND.match(text)
         if follow:
@@ -201,7 +202,7 @@ class Bot:
                 task["channel"],
                 placeholder,
                 reply.text,
-                [button("Chốt, viết issue", "draft", "primary")],
+                [button("Settle, write the issue", "draft", "primary")],
             )
 
     def _unread(self, task: dict, thread: dict) -> str:
@@ -228,15 +229,17 @@ class Bot:
         unread = [text for text in unread if text][-MAX_UNREAD:]
         if not unread:
             return ""
-        return UNREAD + "\n".join(f"- {text}" for text in unread) + "\n\nTin nhắn mới nhất:\n"
+        return UNREAD + "\n".join(f"- {text}" for text in unread) + "\n\nLatest message:\n"
 
     def on_draft(self, task: dict) -> None:
         key = self._key(task)
         channel, thread_ts = task["channel"], task["thread_ts"]
         if not (self.store.get("threads", key) or {}).get("session_id"):
-            self.slack.post(channel, thread_ts, "Chưa có gì để chốt. Bạn kể tôi nghe bạn muốn gì trước đã.")
+            self.slack.post(
+                channel, thread_ts, "There is nothing to settle yet. Tell me what you want first."
+            )
             return
-        reply, placeholder = self._ask_duo(task, lambda thread: DRAFT_TURN, "⏳ Đang viết bản nháp issue…")
+        reply, placeholder = self._ask_duo(task, lambda thread: DRAFT_TURN, "⏳ Writing the issue draft…")
         if not reply:
             return
         title, description = parse_draft(reply.text)
@@ -244,8 +247,8 @@ class Bot:
         self.slack.update(
             channel,
             placeholder,
-            f"**Bản nháp issue**\n\n**{title}**\n\n{description}",
-            [button("Tạo issue này", "create", "primary"), button("Bàn tiếp", "continue")],
+            f"**Issue draft**\n\n**{title}**\n\n{description}",
+            [button("Create this issue", "create", "primary"), button("Keep discussing", "continue")],
         )
 
     def on_continue(self, task: dict) -> None:
@@ -254,9 +257,9 @@ class Bot:
             self.slack.update(
                 task["channel"],
                 task["message_ts"],
-                f"**Bản nháp issue (chưa tạo)**\n\n**{draft['title']}**\n\n{draft['description']}",
+                f"**Issue draft (not created)**\n\n**{draft['title']}**\n\n{draft['description']}",
             )
-        self.slack.post(task["channel"], task["thread_ts"], "Được. Bạn muốn đổi gì, nhắn tiếp ở đây.")
+        self.slack.post(task["channel"], task["thread_ts"], "Sure. Tell me here what you want to change.")
 
     def on_create(self, task: dict) -> None:
         key = self._key(task)
@@ -269,7 +272,7 @@ class Bot:
         if not draft:
             self.store.release_lock(guard)
             self.slack.post(
-                channel, thread_ts, "Không tìm thấy bản nháp. Bấm “Chốt, viết issue” lại giúp tôi."
+                channel, thread_ts, "No draft found. Please press “Settle, write the issue” again."
             )
             return
         private = task["kind"] == "create_private"
@@ -282,10 +285,10 @@ class Bot:
                 self.slack.update(
                     channel,
                     task["message_ts"],
-                    f"**Bản nháp issue (GitLab từ chối)**\n\n{body}",
+                    f"**Issue draft (refused by GitLab)**\n\n{body}",
                     [
-                        button("Tạo dạng riêng tư", "create_private", "primary"),
-                        button("Bàn tiếp", "continue"),
+                        button("Create as private", "create_private", "primary"),
+                        button("Keep discussing", "continue"),
                     ],
                 )
             self.slack.post(channel, thread_ts, SPAM_REJECTED)
@@ -297,12 +300,13 @@ class Bot:
         self._follow(iid, channel, thread_ts)
         self.store.save("threads", key, {"draft": None, "issue_iid": iid})
         if task.get("message_ts"):
-            self.slack.update(channel, task["message_ts"], f"**Issue đã tạo**\n\n{body}")
-        kind = "issue riêng tư" if private else "issue"
+            self.slack.update(channel, task["message_ts"], f"**Issue created**\n\n{body}")
+        kind = "private issue" if private else "issue"
         self.slack.post(
             channel,
             thread_ts,
-            f"✅ Đã tạo [{kind} #{iid}]({issue['web_url']}) và giao cho agent. Tiến độ sẽ hiện ở thread này.",
+            f"✅ Created [{kind} #{iid}]({issue['web_url']}) and assigned it to the agent. "
+            "Progress will show up in this thread.",
         )
 
     def on_follow(self, task: dict, iid: int) -> None:
@@ -311,10 +315,12 @@ class Bot:
         try:
             self.gitlab.issue(iid)
         except Exception:
-            self.slack.post(channel, thread_ts, f"Tôi không tìm thấy issue #{iid} trong project.")
+            self.slack.post(channel, thread_ts, f"I cannot find issue #{iid} in the project.")
             return
         self._follow(iid, channel, thread_ts)
-        self.slack.post(channel, thread_ts, f"Được. Tôi sẽ báo tiến độ của issue #{iid} ở thread này.")
+        self.slack.post(
+            channel, thread_ts, f"Sure. I will report the progress of issue #{iid} in this thread."
+        )
 
     def _follow(self, iid: int, channel: str, thread_ts: str) -> None:
         self.store.save(
@@ -371,7 +377,7 @@ class Bot:
                 if note.get("system"):
                     say(f"🔹 **{author}** {note['body']}")
                 else:
-                    say(f"💬 **{author}** viết trên issue #{iid}:\n\n{note['body']}")
+                    say(f"💬 **{author}** wrote on issue #{iid}:\n\n{note['body']}")
                 state["last_note_id"] = note["id"]
 
             deployed = False
@@ -379,23 +385,23 @@ class Bot:
             for related in self.gitlab.related_merge_requests(iid):
                 mr = self.gitlab.merge_request(related["iid"])
                 ref = f"[!{mr['iid']}]({mr['web_url']})"
-                once(f"mr{mr['iid']}:opened", f"🔀 Merge request {ref} đã mở: {mr['title']}")
+                once(f"mr{mr['iid']}:opened", f"🔀 Merge request {ref} opened: {mr['title']}")
                 if mr["state"] == "merged":
                     merged = True
-                    once(f"mr{mr['iid']}:merged", f"✅ {ref} đã merge vào `{mr['target_branch']}`.")
+                    once(f"mr{mr['iid']}:merged", f"✅ {ref} merged into `{mr['target_branch']}`.")
                     deployed = self._report_deploy(mr, once) or deployed
                 elif mr["state"] == "closed":
-                    once(f"mr{mr['iid']}:closed", f"🚫 {ref} đã bị đóng mà không merge.")
+                    once(f"mr{mr['iid']}:closed", f"🚫 {ref} was closed without merging.")
                 else:
                     self._report_pipeline(mr, ref, once)
 
             closed = self.gitlab.issue(iid)["state"] == "closed"
             expired = time.time() - track.get("created_at", 0) > self.settings.track_hours * 3600
             if closed and (deployed or not merged):
-                say(f"🏁 Issue #{iid} đã đóng. Tôi dừng theo dõi ở đây.")
+                say(f"🏁 Issue #{iid} is closed. I stop tracking it here.")
                 state["active"] = False
             elif expired:
-                say(f"⏹ Đã {self.settings.track_hours} giờ, tôi dừng theo dõi issue #{iid}.")
+                say(f"⏹ {self.settings.track_hours} hours have passed, I stop tracking issue #{iid}.")
                 state["active"] = False
         finally:
             # Saved even when a call failed, so that nothing is reported twice.
@@ -409,11 +415,11 @@ class Bot:
         status = pipeline["status"]
         link = f"[pipeline]({pipeline['web_url']})"
         if status == "running":
-            once(f"pipe{pipeline['id']}:running", f"⏳ {link} của {ref} đang chạy.")
+            once(f"pipe{pipeline['id']}:running", f"⏳ {link} of {ref} is running.")
         elif status == "success":
-            once(f"pipe{pipeline['id']}:success", f"✅ {link} của {ref} đã xanh.")
+            once(f"pipe{pipeline['id']}:success", f"✅ {link} of {ref} passed.")
         elif status in ("failed", "canceled"):
-            once(f"pipe{pipeline['id']}:{status}", f"❌ {link} của {ref} bị {status}.")
+            once(f"pipe{pipeline['id']}:{status}", f"❌ {link} of {ref} {status}.")
 
     def _report_deploy(self, mr: dict, once) -> bool:
         """Follow the default-branch pipeline of a merged MR. True once staging is settled."""
@@ -428,20 +434,20 @@ class Bot:
         if staging and staging["status"] == "success":
             once(
                 f"deploy{pipeline['id']}:success",
-                f"🚀 Staging đã chạy bản mới: {self.settings.staging_url}\n"
-                f"Muốn đưa lên production thì bấm `deploy-production` ở {link}.",
+                f"🚀 Staging runs the new version: {self.settings.staging_url}\n"
+                f"To release it to production, press `deploy-production` in {link}.",
             )
             return True
         if (staging and staging["status"] in ("failed", "canceled")) or pipeline["status"] in (
             "failed",
             "canceled",
         ):
-            once(f"deploy{pipeline['id']}:failed", f"❌ Deploy staging không thành công. Xem {link}.")
+            once(f"deploy{pipeline['id']}:failed", f"❌ The staging deploy failed. See {link}.")
             return True
         if pipeline["status"] == "success" and not staging:
             return True
         once(
             f"deploy{pipeline['id']}:running",
-            f"⏳ {link} trên `{mr['target_branch']}` đang build và deploy staging.",
+            f"⏳ {link} on `{mr['target_branch']}` is building and deploying to staging.",
         )
         return False

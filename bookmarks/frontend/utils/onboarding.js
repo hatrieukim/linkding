@@ -59,7 +59,8 @@ export function normalizeTag(input) {
 }
 
 /**
- * Lower-cases and strips Vietnamese diacritics so that "doc sau" finds "đọc-sau".
+ * Lower-cases and strips diacritics (including the Vietnamese "đ") so that
+ * "cafe" finds "café".
  */
 export function fold(text) {
   return (text || "")

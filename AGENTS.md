@@ -6,23 +6,16 @@ an issue.
 
 ## Language
 
-Everything you write for a person to read is in **Vietnamese**: comments on
-issues and merge requests, merge request descriptions, questions, reports.
-This applies to every agent and subagent working in this repository. Issues
-are written in Vietnamese too.
-
-Git and code stay in English, because this is a fork of an English project:
-branch names, commit messages, merge request titles, identifiers, code
-comments and documentation under `docs/`.
-
-Keep technical terms that have no natural Vietnamese form as they are, for
-example merge request, pipeline, commit, endpoint.
+Everything is written in **English**: comments on issues and merge requests,
+merge request descriptions, questions, reports, branch names, commit messages,
+merge request titles, identifiers, code comments and documentation under
+`docs/`. This applies to every agent and subagent working in this repository.
 
 ### The simple version comes first
 
 The maintainer reads the top of every comment and often nothing else. So every
 plan, report and merge request description opens with a block titled
-`**Bản đơn giản, dễ hiểu**`, followed by a horizontal rule `---`, followed by
+`**Simple version**`, followed by a horizontal rule `---`, followed by
 the detailed part.
 
 Rules for the simple version:
@@ -99,7 +92,7 @@ what failed. Do not report a check as passed unless you ran it and saw it pass.
   under `.gitlab/` or `.agents/` unless the issue explicitly asks for it.
 - Never commit secrets, and never print the value of a token or password.
 - Your file tools cannot edit `.env.sample`. If a change needs a new line
-  there, say so under `Việc cần bạn làm` in the final report with the exact
+  there, say so under `Action needed from you` in the final report with the exact
   text to add.
 
 ## Delivery workflow
@@ -116,7 +109,7 @@ less or more than the literal text.
 
 If the issue cannot be implemented as written, because it is ambiguous in a way
 that changes the design, contradicts existing behaviour, or asks for something
-unsafe, post one comment in Vietnamese that explains the problem and asks a
+unsafe, post one comment that explains the problem and asks a
 specific question. Then stop. Do not guess.
 
 ### 2. Plan, on the issue
@@ -125,26 +118,26 @@ Before you change any file, post one comment on the issue in exactly this
 shape:
 
 ```markdown
-## Phân tích issue #<number>
+## Analysis of issue #<number>
 
-**Bản đơn giản, dễ hiểu**
+**Simple version**
 
 <100 to 200 words of prose>
 
 ---
 
-### Phân tích
+### Analysis
 
-### Kế hoạch thực hiện
+### Implementation plan
 
-### Tiêu chí nghiệm thu
+### Acceptance criteria
 ```
 
-- `Phân tích`: what is being asked, where the relevant code is, and anything
+- `Analysis`: what is being asked, where the relevant code is, and anything
   surprising you found.
-- `Kế hoạch thực hiện`: a short numbered list of the changes you will make,
+- `Implementation plan`: a short numbered list of the changes you will make,
   naming files.
-- `Tiêu chí nghiệm thu`: a checklist. Each item is a fact that someone can
+- `Acceptance criteria`: a checklist. Each item is a fact that someone can
   check without reading the code: an HTTP request and its response, something
   visible in the UI, a command and its output. Include at least one item that
   can be checked against the deployed application. Do not list process steps
@@ -171,23 +164,23 @@ not a draft**. The title is in English. The description is in this shape:
 ```markdown
 Closes #<number>
 
-**Bản đơn giản, dễ hiểu**
+**Simple version**
 
 <100 to 200 words of prose>
 
 ---
 
-### Thay đổi
+### Changes
 
-### Tiêu chí nghiệm thu
+### Acceptance criteria
 
-### Kiểm tra đã chạy
+### Checks run
 ```
 
-- `Thay đổi`: what changed and why, by file.
-- `Tiêu chí nghiệm thu`: the checklist from the plan, ticked where a test or
+- `Changes`: what changed and why, by file.
+- `Acceptance criteria`: the checklist from the plan, ticked where a test or
   check you ran proves the item.
-- `Kiểm tra đã chạy`: the commands you ran and their real results.
+- `Checks run`: the commands you ran and their real results.
 
 ### 6. Enable auto-merge
 
@@ -220,33 +213,33 @@ the second fix, stop, and say so in the final comment.
 Post one final comment on the issue in this shape:
 
 ```markdown
-## Kết quả issue #<number>
+## Result of issue #<number>
 
-**Bản đơn giản, dễ hiểu**
+**Simple version**
 
 <100 to 200 words of prose>
 
 ---
 
-### Thay đổi
+### Changes
 
-### Tiêu chí nghiệm thu
+### Acceptance criteria
 
-### Kiểm tra đã chạy
+### Checks run
 
 ### Merge request
 
-### Việc cần bạn làm
+### Action needed from you
 ```
 
-- `Thay đổi`: what changed, in two or three sentences.
-- `Tiêu chí nghiệm thu`: the checklist, each item marked as verified by a test,
+- `Changes`: what changed, in two or three sentences.
+- `Acceptance criteria`: the checklist, each item marked as verified by a test,
   verified by hand, or not verified.
-- `Kiểm tra đã chạy`: the checks you ran and their real results.
+- `Checks run`: the checks you ran and their real results.
 - `Merge request`: the link and its state: merged, waiting for its pipeline,
   or blocked, and why.
-- `Việc cần bạn làm`: anything the maintainer has to do or decide. Write
-  `Không có.` if there is nothing.
+- `Action needed from you`: anything the maintainer has to do or decide. Write
+  `None.` if there is nothing.
 
 After the merge, the pipeline on the default branch deploys the change to
 staging at https://linkding-staging-248896301327.asia-southeast1.run.app.

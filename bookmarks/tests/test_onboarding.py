@@ -55,7 +55,7 @@ class OnboardingTestCase(TestCase, BookmarkFactoryMixin, HtmlTestMixin):
         # Once in the desktop menu, once in the mobile menu
         self.assertEqual(len(triggers), 2)
         for trigger in triggers:
-            self.assertEqual(trigger.text.strip(), "Hướng dẫn")
+            self.assertEqual(trigger.text.strip(), "Guide")
 
     def test_does_not_render_guide_when_logged_out(self):
         self.client.logout()

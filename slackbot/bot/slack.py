@@ -105,7 +105,7 @@ class Slack:
 
     def post(self, channel: str, thread_ts: str, markdown: str, buttons: list | None = None) -> str:
         """Post into a thread. Long text becomes several messages. Returns the last timestamp."""
-        parts = split(normalize(markdown), MARKDOWN_LIMIT) or ["(trống)"]
+        parts = split(normalize(markdown), MARKDOWN_LIMIT) or ["(empty)"]
         ts = ""
         for index, part in enumerate(parts):
             last = index == len(parts) - 1
@@ -122,7 +122,7 @@ class Slack:
 
     def update(self, channel: str, ts: str, markdown: str, buttons: list | None = None) -> None:
         """Replace a message the bot posted earlier."""
-        parts = split(normalize(markdown), MARKDOWN_LIMIT) or ["(trống)"]
+        parts = split(normalize(markdown), MARKDOWN_LIMIT) or ["(empty)"]
         self._send(self._client.chat_update, parts[0], buttons, channel=channel, ts=ts)
 
     def thread_messages(self, channel: str, thread_ts: str) -> list:

@@ -6,6 +6,11 @@
     <br>
 </div>
 
+> **About this fork.** This is a fork of [sissbruecker/linkding](https://github.com/sissbruecker/linkding),
+> made for the GitLab Transcend hackathon (October 2026). It adds a GitLab CI/CD pipeline,
+> Google Cloud infrastructure, an agent-driven delivery workflow, a Slack bot and a few app features.
+> See [HACKATHON.md](HACKATHON.md). linkding itself is the work of Sascha Ißbrücker and contributors.
+
 ##  Introduction
 
 linkding is a bookmark manager that you can host yourself.
